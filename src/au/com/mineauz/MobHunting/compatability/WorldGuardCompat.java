@@ -12,8 +12,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import net.slipcor.pvparena.core.Config;
-
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -48,9 +46,8 @@ public class WorldGuardCompat implements Listener {
 	private static WorldGuardPlugin mPlugin;
 	private static final StateFlag MOBHUNTINGFLAG = new StateFlag("MobHunting",
 			false);
-	public static HashMap<String, String> mobHuntingRegions = new HashMap<String, String>();
+	private static HashMap<String, String> mobHuntingRegions = new HashMap<String, String>();
 	private static RegionContainer regionContainer;
-	public static Config config;
 	private final static File configFile = new File(
 			MobHunting.instance.getDataFolder(), "worldguard_regions.yml");
 
@@ -110,6 +107,9 @@ public class WorldGuardCompat implements Listener {
 							.getRegionContainer();
 					loadMobHuntingRegions();
 				}
+			else
+				MobHunting
+						.debug("WORLDGUARD IS NOT LOADED!!!!!!!!!!!!!!!!!!!!!");
 		}
 	}
 
@@ -138,6 +138,11 @@ public class WorldGuardCompat implements Listener {
 
 	public static RegionContainer getRegionContainer() {
 		return regionContainer;
+	}
+	
+	public static LocalPlayer getLocalPlayer(Player player){
+		return getWorldGuardPlugin().wrapPlayer(
+				player);
 	}
 
 	// *******************************************************************
@@ -243,6 +248,8 @@ public class WorldGuardCompat implements Listener {
 	// *******************************************************************
 	@EventHandler(priority = EventPriority.NORMAL)
 	public void onPlayerMove(final PlayerMoveEvent event) {
+		if (isDisabledInConfig() || !supported)
+			return;
 		Player player = event.getPlayer();
 		Location location = player.getLocation();
 		RegionQuery query = WorldGuardCompat.getRegionContainer().createQuery();

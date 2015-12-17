@@ -25,11 +25,11 @@ public class SQLiteDataStore extends DatabaseDataStore {
 	protected Connection setupConnection() throws SQLException,
 			DataStoreException {
 		try {
-			Class.forName("org.sqlite.JDBC"); 
+			Class.forName("org.sqlite.JDBC");
 			return DriverManager
 					.getConnection("jdbc:sqlite:" + MobHunting.instance.getDataFolder().getPath() + "/" + MobHunting.config().databaseName + ".db"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 		} catch (ClassNotFoundException e) {
-			throw new DataStoreException("SQLite not present on the classpath"); 
+			throw new DataStoreException("SQLite not present on the classpath");
 		}
 	}
 
@@ -55,7 +55,10 @@ public class SQLiteDataStore extends DatabaseDataStore {
 		}
 
 		// Create new empty tables if they do not exist
-		create.executeUpdate("CREATE TABLE IF NOT EXISTS mh_Players (UUID TEXT PRIMARY KEY, NAME TEXT, PLAYER_ID INTEGER NOT NULL)"); //$NON-NLS-1$
+		String lm = MobHunting.config().learningMode ? "1" : "0";
+		create.executeUpdate("CREATE TABLE IF NOT EXISTS mh_Players (UUID TEXT PRIMARY KEY, NAME TEXT, "
+				+ "PLAYER_ID INTEGER NOT NULL, LEARNING_MODE INTEGER NOT NULL DEFAULT "
+				+ lm + ")");
 		String dataString = "";
 		for (StatType type : StatType.values())
 			dataString += ", " + type.getDBColumn()
@@ -154,25 +157,29 @@ public class SQLiteDataStore extends DatabaseDataStore {
 		mGetPlayerStatement[0] = connection
 				.prepareStatement("SELECT * FROM mh_Players WHERE UUID=?;");
 		mGetPlayerStatement[1] = connection
-				.prepareStatement("SELECT * FROM mh_Players WHERE UUID IN (?,?);"); //$NON-NLS-1$
+				.prepareStatement("SELECT * FROM mh_Players WHERE UUID IN (?,?);");
 		mGetPlayerStatement[2] = connection
-				.prepareStatement("SELECT * FROM mh_Players WHERE UUID IN (?,?,?,?,?);"); //$NON-NLS-1$
+				.prepareStatement("SELECT * FROM mh_Players WHERE UUID IN (?,?,?,?,?);"); 
 		mGetPlayerStatement[3] = connection
-				.prepareStatement("SELECT * FROM mh_Players WHERE UUID IN (?,?,?,?,?,?,?,?,?,?);"); //$NON-NLS-1$
+				.prepareStatement("SELECT * FROM mh_Players WHERE UUID IN (?,?,?,?,?,?,?,?,?,?);"); 
 
 		mRecordAchievementStatement = connection
-				.prepareStatement("INSERT OR REPLACE INTO mh_Achievements VALUES(?,?,?,?);"); //$NON-NLS-1$
+				.prepareStatement("INSERT OR REPLACE INTO mh_Achievements VALUES(?,?,?,?);"); 
 
 		mAddPlayerStatsStatement = connection
-				.prepareStatement("INSERT OR IGNORE INTO mh_Daily(ID, PLAYER_ID) VALUES(strftime(\"%Y%j\",\"now\"),?);"); //$NON-NLS-1$
+				.prepareStatement("INSERT OR IGNORE INTO mh_Daily(ID, PLAYER_ID) VALUES(strftime(\"%Y%j\",\"now\"),?);"); 
 
 		mLoadAchievementsStatement = connection
-				.prepareStatement("SELECT ACHIEVEMENT, DATE, PROGRESS FROM mh_Achievements WHERE PLAYER_ID = ?;"); //$NON-NLS-1$
+				.prepareStatement("SELECT ACHIEVEMENT, DATE, PROGRESS FROM mh_Achievements WHERE PLAYER_ID = ?;"); 
 
 		mGetPlayerUUID = connection
 				.prepareStatement("SELECT UUID FROM mh_Players WHERE NAME=?;");
 		mUpdatePlayerName = connection
 				.prepareStatement("UPDATE mh_Players SET NAME=? WHERE UUID=?;");
+		mUpdatePlayerLearningMode = connection
+				.prepareStatement("UPDATE mh_Players SET LEARNING_MODE=? WHERE UUID=?;");
+		mGetPlayerLearningMode = connection
+				.prepareStatement("SELECT LEARNING_MODE FROM mh_Players WHERE UUID=?;");
 	}
 
 	@Override
@@ -211,13 +218,12 @@ public class SQLiteDataStore extends DatabaseDataStore {
 										stat.getAmount()));
 			statement.executeBatch();
 			statement.close();
-			MobHunting.debug("Saved.", "");
 		} catch (SQLException e) {
 			rollback();
 			throw new DataStoreException(e);
 		}
 	}
-
+	
 	@Override
 	public List<StatStore> loadStats(StatType type, TimePeriod period, int count)
 			throws DataStoreException {
@@ -873,6 +879,18 @@ public class SQLiteDataStore extends DatabaseDataStore {
 					.executeUpdate("alter table `mh_AllTime` add column `KillerRabbit_assist`  INTEGER NOT NULL DEFAULT 0");
 
 			System.out.println("[MobHunting]*** Adding new Mobs complete ***");
+		}
+
+		try {
+			ResultSet rs = statement
+					.executeQuery("SELECT LEARNING_MODE from mh_Players LIMIT 0");
+			rs.close();
+		} catch (SQLException e) {
+			System.out
+					.println("[MobHunting]*** Adding new Player leaning mode to MobHunting Database ***");
+			String lm = MobHunting.config().learningMode ? "1" : "0";
+			statement
+					.executeUpdate("alter table `mh_Players` add column `LEARNING_MODE` INTEGER NOT NULL DEFAULT "+lm);
 		}
 
 		MobHunting.debug("Updating database triggers.");

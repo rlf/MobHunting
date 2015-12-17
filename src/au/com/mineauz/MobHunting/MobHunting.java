@@ -51,7 +51,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.mcstats.Metrics;
 import org.mcstats.Metrics.Graph;
 
-import com.sk89q.worldguard.LocalPlayer;
+//import com.sk89q.worldguard.LocalPlayer;
 import com.sk89q.worldguard.bukkit.RegionQuery;
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.flags.DefaultFlag;
@@ -63,16 +63,20 @@ import au.com.mineauz.MobHunting.commands.CheckGrindingCommand;
 import au.com.mineauz.MobHunting.commands.ClearGrindingCommand;
 import au.com.mineauz.MobHunting.commands.CommandDispatcher;
 import au.com.mineauz.MobHunting.commands.LeaderboardCommand;
+import au.com.mineauz.MobHunting.commands.LearnCommand;
 import au.com.mineauz.MobHunting.commands.ListAchievementsCommand;
 import au.com.mineauz.MobHunting.commands.ReloadCommand;
 import au.com.mineauz.MobHunting.commands.SelectCommand;
 import au.com.mineauz.MobHunting.commands.TopCommand;
 import au.com.mineauz.MobHunting.commands.UpdateCommand;
+import au.com.mineauz.MobHunting.commands.VersionCommand;
 import au.com.mineauz.MobHunting.commands.WhitelistAreaCommand;
-import au.com.mineauz.MobHunting.commands.regionCommand;
+import au.com.mineauz.MobHunting.commands.RegionCommand;
 import au.com.mineauz.MobHunting.compatability.CitizensCompat;
 import au.com.mineauz.MobHunting.compatability.CompatibilityManager;
+import au.com.mineauz.MobHunting.compatability.DisguiseCraftCompat;
 import au.com.mineauz.MobHunting.compatability.EssentialsCompat;
+import au.com.mineauz.MobHunting.compatability.IDisguiseCompat;
 import au.com.mineauz.MobHunting.compatability.MinigamesCompat;
 import au.com.mineauz.MobHunting.compatability.MobArenaCompat;
 import au.com.mineauz.MobHunting.compatability.MobArenaHelper;
@@ -197,6 +201,9 @@ public class MobHunting extends JavaPlugin implements Listener {
 		CompatibilityManager.register(MythicMobsCompat.class, "MythicMobs");
 		CompatibilityManager.register(CitizensCompat.class, "Citizens");
 		CompatibilityManager.register(EssentialsCompat.class, "Essentials");
+		CompatibilityManager.register(IDisguiseCompat.class, "iDisguise");
+		CompatibilityManager.register(DisguiseCraftCompat.class,
+				"DisguiseCraft");
 
 		CommandDispatcher cmd = new CommandDispatcher("mobhunt",
 				Messages.getString("mobhunting.command.base.description")
@@ -211,13 +218,15 @@ public class MobHunting extends JavaPlugin implements Listener {
 		cmd.registerCommand(new LeaderboardCommand());
 		cmd.registerCommand(new ClearGrindingCommand());
 		cmd.registerCommand(new WhitelistAreaCommand());
-		cmd.registerCommand(new UpdateCommand());
 		if (getServer().getPluginManager().isPluginEnabled("WorldEdit")) {
 			cmd.registerCommand(new SelectCommand());
 		}
-		if (getServer().getPluginManager().isPluginEnabled("WorldGuard")) {
-			cmd.registerCommand(new regionCommand());
+		if (WorldGuardCompat.isWorldGuardSupported()) {
+			cmd.registerCommand(new RegionCommand());
 		}
+		cmd.registerCommand(new UpdateCommand());
+		cmd.registerCommand(new VersionCommand());
+		cmd.registerCommand(new LearnCommand());
 
 		registerAchievements();
 		registerModifiers();
@@ -249,10 +258,8 @@ public class MobHunting extends JavaPlugin implements Listener {
 			debug("Failed to start Metrics!");
 		}
 
-		instance.getLogger().info(Messages
-						.getString("mobhunting.commands.update.check"));
 		pluginUpdateCheck(getServer().getConsoleSender(),
-				instance.mConfig.updateCheck);
+				instance.mConfig.updateCheck, false);
 
 	}
 
@@ -261,7 +268,6 @@ public class MobHunting extends JavaPlugin implements Listener {
 		if (!mInitialized)
 			return;
 
-		debug("mLeaderboards.shutdown()");
 		mLeaderboards.shutdown();
 
 		mAchievements = new AchievementManager();
@@ -689,13 +695,13 @@ public class MobHunting extends JavaPlugin implements Listener {
 				ApplicableRegionSet set = query.getApplicableRegions(event
 						.getDamager().getLocation());
 				if (set != null) {
-					LocalPlayer localPlayer = WorldGuardCompat
-							.getWorldGuardPlugin().wrapPlayer(
-									(Player) event.getDamager());
-					if (!set.testState(localPlayer, DefaultFlag.MOB_DAMAGE)) {
+					//LocalPlayer localPlayer = WorldGuardCompat
+					//		.getWorldGuardPlugin().wrapPlayer(
+					//				(Player) event.getDamager());
+					if (!set.testState(WorldGuardCompat.getLocalPlayer((Player) event.getDamager()), DefaultFlag.MOB_DAMAGE)) {
 						debug("KillBlocked: %s is hiding in WG region with MOB_DAMAGE %s",
 								event.getDamager().getName(), set.testState(
-										localPlayer, DefaultFlag.MOB_DAMAGE));
+										WorldGuardCompat.getLocalPlayer((Player) event.getDamager()), DefaultFlag.MOB_DAMAGE));
 						return;
 					}
 				}
@@ -712,9 +718,9 @@ public class MobHunting extends JavaPlugin implements Listener {
 		Player cause = null;
 		ItemStack weapon = null;
 
-		if (event.getDamager() instanceof Player) {			
+		if (event.getDamager() instanceof Player) {
 			cause = (Player) event.getDamager();
-			//if (cause.is
+			// if (cause.is
 		}
 
 		boolean projectile = false;
@@ -820,25 +826,25 @@ public class MobHunting extends JavaPlugin implements Listener {
 					ApplicableRegionSet set = query.getApplicableRegions(killer
 							.getLocation());
 					if (set.size() > 0) {
-						LocalPlayer localPlayer = WorldGuardCompat
-								.getWorldGuardPlugin().wrapPlayer(killer);
-						if (set.queryState(localPlayer,
+						//LocalPlayer localPlayer = WorldGuardCompat
+						//		.getWorldGuardPlugin().wrapPlayer(killer);
+						if (set.queryState(WorldGuardCompat.getLocalPlayer(killer),
 								WorldGuardCompat.getMobHuntingFlag()) == null) {
 							debug("KillBlocked %s(%d): Mobhunting disabled in world '%s'"
 									+ ",and MobHunting flag is null",
 									killed.getType(), killed.getEntityId(),
 									killed.getWorld().getName(),
-									set.queryState(localPlayer,
+									set.queryState(WorldGuardCompat.getLocalPlayer(killer),
 											WorldGuardCompat
 													.getMobHuntingFlag()));
 							return;
-						} else if (set.queryState(localPlayer,
+						} else if (set.queryState(WorldGuardCompat.getLocalPlayer(killer),
 								WorldGuardCompat.getMobHuntingFlag()) == State.ALLOW) {
 							debug("KillBlocked %s(%d): Mobhunting disabled in world '%s'"
 									+ ",but MobHunting flag is (%s)",
 									killed.getType(), killed.getEntityId(),
 									killed.getWorld().getName(),
-									set.queryState(localPlayer,
+									set.queryState(WorldGuardCompat.getLocalPlayer(killer),
 											WorldGuardCompat
 													.getMobHuntingFlag()));
 						} else {
@@ -846,7 +852,7 @@ public class MobHunting extends JavaPlugin implements Listener {
 									+ " and MobHunting flag is '%s')",
 									killed.getType(), killed.getEntityId(),
 									killed.getWorld().getName(),
-									set.queryState(localPlayer,
+									set.queryState(WorldGuardCompat.getLocalPlayer(killer),
 											WorldGuardCompat
 													.getMobHuntingFlag()));
 
@@ -883,14 +889,14 @@ public class MobHunting extends JavaPlugin implements Listener {
 						.getLocation());
 
 				if (set.size() > 0) {
-					LocalPlayer localPlayer = WorldGuardCompat
-							.getWorldGuardPlugin().wrapPlayer(killer);
+					//LocalPlayer localPlayer = WorldGuardCompat
+					//		.getWorldGuardPlugin().wrapPlayer(killer);
 					debug("Found %s Worldguard region(s): MOB_DAMAGE flag is %s",
 							set.size(),
-							set.queryState(localPlayer, DefaultFlag.MOB_DAMAGE));
-					if (set.queryState(localPlayer, DefaultFlag.MOB_DAMAGE) == State.DENY) {
+							set.queryState(WorldGuardCompat.getLocalPlayer(killer), DefaultFlag.MOB_DAMAGE));
+					if (set.queryState(WorldGuardCompat.getLocalPlayer(killer), DefaultFlag.MOB_DAMAGE) == State.DENY) {
 						debug("KillBlocked: %s is hiding in WG region with MOB_DAMAGE %s",
-								killer.getName(), set.queryState(localPlayer,
+								killer.getName(), set.queryState(WorldGuardCompat.getLocalPlayer(killer),
 										DefaultFlag.MOB_DAMAGE));
 						return;
 					}
@@ -1320,16 +1326,7 @@ public class MobHunting extends JavaPlugin implements Listener {
 		Player player = event.getPlayer();
 		setHuntEnabled(player, true);
 		if (player.hasPermission("mobhunting.update")) {
-			pluginUpdateCheck(player, true);
-			//if (updateAvailable == UpdateStatus.AVAILABLE) {
-			//	player.sendMessage(ChatColor.RED
-			//			+ ""
-			//			+ ChatColor.ITALIC
-			//			+ Messages.getString(
-			//					"mobhunting.commands.update.version-found"));
-			//	player.sendMessage(ChatColor.RED + "" + ChatColor.ITALIC
-			//			+ Messages.getString("mobhunting.commands.update.help"));
-			//}
+			pluginUpdateCheck(player, true, true);
 		}
 	}
 
@@ -1435,8 +1432,16 @@ public class MobHunting extends JavaPlugin implements Listener {
 	}
 
 	public void pluginUpdateCheck(final CommandSender sender,
-			boolean updateCheck) {
+			boolean updateCheck, final boolean silent) {
 		if (updateCheck) {
+			if (!silent) {
+				getServer()
+						.getConsoleSender()
+						.sendMessage(
+								ChatColor.GOLD
+										+ Messages
+												.getString("mobhunting.commands.update.check"));
+			}
 			if (updateAvailable != UpdateStatus.RESTART_NEEDED) {
 				// Check for updates asynchronously in background
 				getServer().getScheduler().runTaskAsynchronously(this,
@@ -1457,7 +1462,7 @@ public class MobHunting extends JavaPlugin implements Listener {
 					public void run() {
 						if (count++ > 10) {
 							sender.sendMessage(ChatColor.RED
-									+ "No updates found. (No response from server after 10s)");
+									+ "[MobHunting] No updates found. (No response from server after 10s)");
 							this.cancel();
 						} else {
 							// Wait for the response
@@ -1473,9 +1478,11 @@ public class MobHunting extends JavaPlugin implements Listener {
 												+ Messages
 														.getString("mobhunting.commands.update.help"));
 									} else {
-										sender.sendMessage(ChatColor.GOLD
-												+ Messages
-														.getString("mobhunting.commands.update.no-update"));
+										if (!silent) {
+											sender.sendMessage(ChatColor.GOLD
+													+ Messages
+															.getString("mobhunting.commands.update.no-update"));
+										}
 									}
 
 								}

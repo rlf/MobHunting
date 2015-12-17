@@ -8,7 +8,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
-
 import au.com.mineauz.MobHunting.MobHunting;
 import au.com.mineauz.MobHunting.ExtendedMobType;
 import au.com.mineauz.MobHunting.StatType;
@@ -148,7 +147,8 @@ public class DataStoreManager {
 				while (true) {
 					synchronized (this) {
 						if (mExit) {
-							break; }
+							break;
+						}
 					}
 
 					mTaskThread.addTask(new StoreTask(mWaiting), null);
@@ -285,6 +285,27 @@ public class DataStoreManager {
 		} catch (DataStoreException e) {
 			e.printStackTrace();
 			return null;
+		}
+	}
+
+	/**
+	 * Gets the Learning Mode of an player. WARNING: This does a database lookup
+	 * directly. This will block waiting for a reply
+	 */
+	public boolean getPlayerLearningMode(OfflinePlayer player) {
+		try {
+			return mStore.getPlayerLearningMode(player);
+		} catch (UserNotFoundException e) {
+			return true;
+		} catch (DataStoreException e) {
+			e.printStackTrace();
+			return true;
+		}
+	}
+
+	public void setPlayerLearningMode(OfflinePlayer player, boolean learning_mode) {
+		synchronized (mWaiting) {
+			mWaiting.add(new PlayerStore(player, learning_mode));
 		}
 	}
 

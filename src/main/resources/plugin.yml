@@ -4,7 +4,7 @@ version: ${version}
 description: A Mobhunting plugin
 author: Rocologo
 depend: [Vault]
-softdepend: [Minigames, MyPet, WorldEdit, WorldGuard, MobArena, PVPArena, MythicMobs, Citizens, Essentials]
+softdepend: [Minigames, MyPet, WorldGuard, WorldEdit, MobArena, PVPArena, MythicMobs, Citizens, Essentials, ProtocolLib, DisguiseCraft, iDisguise]
 
 commands:
   mobhunt:

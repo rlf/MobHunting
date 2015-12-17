@@ -51,6 +51,16 @@ public abstract class DatabaseDataStore implements DataStore {
 	 */
 	protected PreparedStatement mUpdatePlayerName;
 
+	/**
+	 * Args: player uuid
+	 */
+	protected PreparedStatement mUpdatePlayerLearningMode;
+
+	/**
+	 * Args: player uuid
+	 */
+	protected PreparedStatement mGetPlayerLearningMode;
+
 	@Override
 	public void initialize() throws DataStoreException {
 		try {
@@ -90,6 +100,8 @@ public abstract class DatabaseDataStore implements DataStore {
 		mLoadAchievementsStatement.close();
 		mGetPlayerUUID.close();
 		mUpdatePlayerName.close();
+		//mUpdatePlayerLearningMode.close();
+		mGetPlayerLearningMode.close();
 	}
 
 	protected void rollback() throws DataStoreException {
@@ -120,7 +132,8 @@ public abstract class DatabaseDataStore implements DataStore {
 		myAddPlayerStatement.clearBatch();
 
 		for (OfflinePlayer player : players) {
-			myAddPlayerStatement.setString(1, player.getPlayer().getUniqueId().toString());
+			myAddPlayerStatement.setString(1, player.getPlayer().getUniqueId()
+					.toString());
 			myAddPlayerStatement.setString(2, player.getPlayer().getName());
 			myAddPlayerStatement.addBatch();
 		}
@@ -162,8 +175,10 @@ public abstract class DatabaseDataStore implements DataStore {
 			int index = 0;
 			while (results.next()) {
 				OfflinePlayer player = temp.get(index++);
-				if (results.getString(1).equals(player.getUniqueId().toString()) && 
-						!results.getString(2).equals(player.getPlayer().getName())) {
+				if (results.getString(1)
+						.equals(player.getUniqueId().toString())
+						&& !results.getString(2).equals(
+								player.getPlayer().getName())) {
 					MobHunting.instance.getLogger().severe(
 							"Name change detected(1): " + results.getString(2)
 									+ " -> " + player.getPlayer().getName()
@@ -214,6 +229,43 @@ public abstract class DatabaseDataStore implements DataStore {
 		}
 	}
 
+	/**public void setPlayerLearningModeXXX(OfflinePlayer player,
+			boolean learning_mode) throws SQLException {
+		try {
+			mUpdatePlayerLearningMode.setString(1, learning_mode ? "1" : "0");
+			mUpdatePlayerLearningMode.setString(2, player.getUniqueId()
+					.toString());
+			mUpdatePlayerName.executeUpdate();
+			mConnection.commit();
+		} finally {
+			mConnection.rollback();
+		}
+	}**/
+
+	@Override
+	public boolean getPlayerLearningMode(OfflinePlayer player)
+			throws DataStoreException {
+		try {
+			mGetPlayerLearningMode
+					.setString(1, player.getUniqueId().toString());
+			ResultSet set = mGetPlayerLearningMode.executeQuery();
+			if (set.next()) {
+				if (set.getBoolean(1)) {
+					set.close();
+					return true;
+				} else {
+					set.close();
+					return false;
+				}
+			}
+			throw new UserNotFoundException("User " + player.getName()
+					+ " is not present in database");
+		} catch (SQLException e) {
+			throw new DataStoreException(e);
+		}
+
+	}
+
 	@Override
 	public OfflinePlayer getPlayerByName(String name) throws DataStoreException {
 		try {
@@ -224,8 +276,8 @@ public abstract class DatabaseDataStore implements DataStore {
 				UUID uid = UUID.fromString(set.getString(1));
 				return Bukkit.getOfflinePlayer(uid);
 			}
-			throw new UserNotFoundException(
-					"User " + name + " is not present in database"); //$NON-NLS-1$ //$NON-NLS-2$
+			throw new UserNotFoundException("User " + name
+					+ " is not present in database");
 		} catch (SQLException e) {
 			throw new DataStoreException(e);
 		}
@@ -276,6 +328,25 @@ public abstract class DatabaseDataStore implements DataStore {
 			mConnection.commit();
 		} catch (SQLException e) {
 
+			rollback();
+			throw new DataStoreException(e);
+		}
+	}
+	
+	@Override
+	public void savePlayers(Set<PlayerStore> players) throws DataStoreException {
+		try {
+			MobHunting.debug("Saving players to Database.", "");
+
+			for (PlayerStore player : players) {
+				mUpdatePlayerLearningMode.setString(1, player.getLearningMode() ? "1" : "0");
+				mUpdatePlayerLearningMode.setString(2, player.getPlayer().getUniqueId()
+						.toString());
+				mUpdatePlayerLearningMode.addBatch();
+			}
+			mUpdatePlayerLearningMode.executeBatch();
+
+		} catch (SQLException e) {
 			rollback();
 			throw new DataStoreException(e);
 		}

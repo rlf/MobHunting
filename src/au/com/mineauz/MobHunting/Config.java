@@ -789,6 +789,15 @@ public class Config extends AutoConfig {
 
 	@ConfigField(name = "disable-integration-essentials", category = "plugins", comment = "Disable integration with Essentials")
 	public boolean disableIntegrationEssentials = false;
+	
+	@ConfigField(name = "disable-integration-i-disguise", category = "plugins", comment = "Disable integration with iDisguise")
+	public boolean disableIntegrationIDisguise = false;
+	
+	@ConfigField(name = "disable-integration-disguisecraft", category = "plugins", comment = "Disable integration with DisguiseCcraft")
+	public boolean disableIntegrationDisguiseCraft = false;
+
+	@ConfigField(name = "disable-integration-libsdisguises", category = "plugins", comment = "Disable integration with LibsDisguises")
+	public boolean disableIntegrationLibsDisguises = false;
 
 	// #####################################################################################
 	// Database
@@ -835,6 +844,11 @@ public class Config extends AutoConfig {
 			+ "\nSet rounding_reward=5 if you want multipla of 5 IE. 10,15,20,25..."
 			+ "\nSet rounding_reward=2 if you want multipla of 2 IE. 10,12,14,16...")
 	public double rewardRounding = 0.01;
+	@ConfigField(name = "NEWPLAYER_LEARNING_MODE", category = "general", comment = "When a new playerjoins the server he will by default start"+
+	"\nin 'LEARNING MODE' and get extra information about when he get rewards and not,"
+	+ "\nwhen killing Mobs. The player can disable this InGame by using the command '/mh learn'")
+	public boolean learningMode = true;
+	
 
 	@Override
 	protected void onPostLoad() throws InvalidConfigurationException {

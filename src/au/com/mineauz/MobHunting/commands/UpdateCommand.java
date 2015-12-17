@@ -11,8 +11,6 @@ import java.util.List;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-
 import au.com.mineauz.MobHunting.Messages;
 import au.com.mineauz.MobHunting.MobHunting;
 import au.com.mineauz.MobHunting.MobHunting.UpdateStatus;
@@ -72,7 +70,7 @@ public class UpdateCommand implements ICommand {
 			sender.sendMessage(ChatColor.GREEN
 					+ Messages.getString("mobhunting.commands.update.complete"));
 		} else {
-			MobHunting.instance.pluginUpdateCheck(sender, true);
+			MobHunting.instance.pluginUpdateCheck(sender, true, false);
 		}
 		return true;
 	}

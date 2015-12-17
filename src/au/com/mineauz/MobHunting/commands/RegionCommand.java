@@ -22,9 +22,9 @@ import au.com.mineauz.MobHunting.MobHunting;
 import au.com.mineauz.MobHunting.compatability.MyPetCompat;
 import au.com.mineauz.MobHunting.compatability.WorldGuardCompat;
 
-public class regionCommand implements ICommand, Listener {
+public class RegionCommand implements ICommand, Listener {
 
-	public regionCommand() {
+	public RegionCommand() {
 		Bukkit.getPluginManager().registerEvents(this, MobHunting.instance);
 	}
 

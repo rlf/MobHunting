@@ -6,12 +6,14 @@ import java.util.Set;
 import au.com.mineauz.MobHunting.storage.AchievementStore;
 import au.com.mineauz.MobHunting.storage.DataStore;
 import au.com.mineauz.MobHunting.storage.DataStoreException;
+import au.com.mineauz.MobHunting.storage.PlayerStore;
 import au.com.mineauz.MobHunting.storage.StatStore;
 
 public class StoreTask implements DataStoreTask<Void>
 {
 	private HashSet<StatStore> mWaitingStats = new HashSet<StatStore>();
 	private HashSet<AchievementStore> mWaitingAchievements = new HashSet<AchievementStore>();
+	private HashSet<PlayerStore> mWaitingPlayers = new HashSet<PlayerStore>();
 	
 	public StoreTask(Set<Object> waiting)
 	{
@@ -19,6 +21,7 @@ public class StoreTask implements DataStoreTask<Void>
 		{
 			mWaitingStats.clear();
 			mWaitingAchievements.clear();
+			mWaitingPlayers.clear();
 			
 			for(Object obj : waiting)
 			{
@@ -26,6 +29,8 @@ public class StoreTask implements DataStoreTask<Void>
 					mWaitingStats.add((StatStore)obj);
 				if(obj instanceof AchievementStore)
 					mWaitingAchievements.add((AchievementStore)obj);
+				if(obj instanceof PlayerStore)
+					mWaitingPlayers.add((PlayerStore)obj);
 			}
 			
 			waiting.clear();
@@ -39,6 +44,9 @@ public class StoreTask implements DataStoreTask<Void>
 
 		if(!mWaitingAchievements.isEmpty())
 			store.saveAchievements(mWaitingAchievements);
+
+		if(!mWaitingPlayers.isEmpty())
+			store.savePlayers(mWaitingPlayers);
 
 		return null;
 	}
