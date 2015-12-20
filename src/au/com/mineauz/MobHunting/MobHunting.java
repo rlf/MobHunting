@@ -1153,13 +1153,16 @@ public class MobHunting extends JavaPlugin implements Listener {
 				if (CitizensCompat.isDisabledInConfig()
 						|| !CitizensCompat.isCitizensSupported()
 						|| !CitizensCompat.isNPC(killed)) {
-					mEconomy.withdrawPlayer((Player) killed, cash);
-					killed.sendMessage(ChatColor.RED
-							+ ""
-							+ ChatColor.ITALIC
-							+ Messages.getString("mobhunting.moneylost",
-									mEconomy.format(cash)));
-					debug("%s lost %s", killed.getName(), mEconomy.format(cash));
+					if (mConfig.robFromVictim) {
+						mEconomy.withdrawPlayer((Player) killed, cash);
+						killed.sendMessage(ChatColor.RED
+								+ ""
+								+ ChatColor.ITALIC
+								+ Messages.getString("mobhunting.moneylost",
+										mEconomy.format(cash)));
+						debug("%s lost %s", killed.getName(),
+								mEconomy.format(cash));
+					}
 				}
 			}
 

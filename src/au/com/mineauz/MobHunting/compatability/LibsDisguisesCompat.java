@@ -39,7 +39,7 @@ public class LibsDisguisesCompat implements Listener {
 
 			MobHunting.instance.getLogger().info(
 					"Enabling compatability with LibsDisguises ("
-							+ getDisguiseCraft().getDescription().getVersion()
+							+ getLbsDisguises().getDescription().getVersion()
 							+ ")");
 			supported = true;
 		}
@@ -49,7 +49,7 @@ public class LibsDisguisesCompat implements Listener {
 	// OTHER
 	// **************************************************************************
 
-	public static Plugin getDisguiseCraft() {
+	public static Plugin getLbsDisguises() {
 		return mPlugin;
 	}
 
