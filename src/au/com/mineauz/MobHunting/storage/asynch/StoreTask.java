@@ -46,7 +46,7 @@ public class StoreTask implements DataStoreTask<Void>
 			store.saveAchievements(mWaitingAchievements);
 
 		if(!mWaitingPlayers.isEmpty())
-			store.savePlayers(mWaitingPlayers);
+			store.setPlayerLearningMode(mWaitingPlayers);
 
 		return null;
 	}

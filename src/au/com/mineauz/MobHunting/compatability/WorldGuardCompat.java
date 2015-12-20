@@ -14,7 +14,6 @@ import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
@@ -28,14 +27,12 @@ import org.bukkit.event.player.PlayerMoveEvent;
 
 import com.sk89q.worldguard.LocalPlayer;
 import com.sk89q.worldguard.bukkit.RegionContainer;
-import com.sk89q.worldguard.bukkit.RegionQuery;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.flags.DefaultFlag;
 import com.sk89q.worldguard.protection.flags.Flag;
 import com.sk89q.worldguard.protection.flags.InvalidFlagFormat;
 import com.sk89q.worldguard.protection.flags.StateFlag;
-import com.sk89q.worldguard.protection.flags.StateFlag.State;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 
 import au.com.mineauz.MobHunting.MobHunting;
@@ -44,10 +41,10 @@ public class WorldGuardCompat implements Listener {
 
 	private static boolean supported = false;
 	private static WorldGuardPlugin mPlugin;
-	private static final StateFlag MOBHUNTINGFLAG = new StateFlag("MobHunting",
-			false);
 	private static HashMap<String, String> mobHuntingRegions = new HashMap<String, String>();
 	private static RegionContainer regionContainer;
+	private static final StateFlag MOBHUNTINGFLAG = new StateFlag("MobHunting",
+			true);
 	private final static File configFile = new File(
 			MobHunting.instance.getDataFolder(), "worldguard_regions.yml");
 
@@ -99,13 +96,14 @@ public class WorldGuardCompat implements Listener {
 								.cast(Bukkit.getPluginManager().getPlugin(
 										"WorldGuard")).getGlobalStateManager()
 								.load();
-						// getGlobalRegionManager().getLoaded();
+						regionContainer = WorldGuardCompat
+								.getWorldGuardPlugin().getRegionContainer();
+						loadMobHuntingRegions();
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
-					regionContainer = WorldGuardCompat.getWorldGuardPlugin()
-							.getRegionContainer();
-					loadMobHuntingRegions();
+					MobHunting.instance.isWorldGuardLoaded = true;
+
 				}
 			else
 				MobHunting
@@ -120,7 +118,8 @@ public class WorldGuardCompat implements Listener {
 		return mPlugin;
 	}
 
-	public static boolean isWorldGuardSupported() {
+	@SuppressWarnings("unused")
+	private static boolean isWorldGuardSupported() {
 		return supported;
 	}
 
@@ -139,10 +138,9 @@ public class WorldGuardCompat implements Listener {
 	public static RegionContainer getRegionContainer() {
 		return regionContainer;
 	}
-	
-	public static LocalPlayer getLocalPlayer(Player player){
-		return getWorldGuardPlugin().wrapPlayer(
-				player);
+
+	public static LocalPlayer getLocalPlayer(Player player) {
+		return getWorldGuardPlugin().wrapPlayer(player);
 	}
 
 	// *******************************************************************
@@ -251,14 +249,10 @@ public class WorldGuardCompat implements Listener {
 		if (isDisabledInConfig() || !supported)
 			return;
 		Player player = event.getPlayer();
-		Location location = player.getLocation();
-		RegionQuery query = WorldGuardCompat.getRegionContainer().createQuery();
-		ApplicableRegionSet set = query.getApplicableRegions(location);
-		LocalPlayer localPlayer = WorldGuardCompat.getWorldGuardPlugin()
-				.wrapPlayer(player);
-		if (set.queryState(localPlayer, WorldGuardCompat.getMobHuntingFlag()) == State.ALLOW
-				|| set.queryState(localPlayer,
-						WorldGuardCompat.getMobHuntingFlag()) == State.DENY) {
+		ApplicableRegionSet set = WorldGuardCompat.getWorldGuardPlugin()
+				.getRegionManager(player.getWorld())
+				.getApplicableRegions(player.getLocation());
+		if (set.size() > 0) {
 			Iterator<ProtectedRegion> i = set.getRegions().iterator();
 			while (i.hasNext()) {
 				ProtectedRegion pr = i.next();

@@ -27,6 +27,6 @@ public interface DataStore {
 
 	public boolean getPlayerLearningMode(OfflinePlayer player) throws DataStoreException;
 
-	public void savePlayers(Set<PlayerStore> players) throws DataStoreException;
+	public void setPlayerLearningMode(Set<PlayerStore> players) throws DataStoreException;
 	
 }

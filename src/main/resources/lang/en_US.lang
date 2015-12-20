@@ -129,8 +129,8 @@ mobhunting.commands.region.specifyRegionId=Please specify region
 mobhunting.commands.region.unknownRegionId=Unknown region &4${regionid}
 mobhunting.commands.region.noWorldguardSupport=Worldguard is disabled or not loaded
 mobhunting.commands.learn.description=Turns learning mode on/off
-mobhunting.commands.learn.enabled=Learning mode is on
-mobhunting.commands.learn.disabled=Learning mode is off
+mobhunting.commands.learn.enabled=Learning mode is now &bon&f for player &b${player}
+mobhunting.commands.learn.disabled=Learning mode is now &boff&f for player &b${player}
 
 stats.achievement_count=Achievement Count
 stats.total=Total

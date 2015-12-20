@@ -159,18 +159,18 @@ public class SQLiteDataStore extends DatabaseDataStore {
 		mGetPlayerStatement[1] = connection
 				.prepareStatement("SELECT * FROM mh_Players WHERE UUID IN (?,?);");
 		mGetPlayerStatement[2] = connection
-				.prepareStatement("SELECT * FROM mh_Players WHERE UUID IN (?,?,?,?,?);"); 
+				.prepareStatement("SELECT * FROM mh_Players WHERE UUID IN (?,?,?,?,?);");
 		mGetPlayerStatement[3] = connection
-				.prepareStatement("SELECT * FROM mh_Players WHERE UUID IN (?,?,?,?,?,?,?,?,?,?);"); 
+				.prepareStatement("SELECT * FROM mh_Players WHERE UUID IN (?,?,?,?,?,?,?,?,?,?);");
 
 		mRecordAchievementStatement = connection
-				.prepareStatement("INSERT OR REPLACE INTO mh_Achievements VALUES(?,?,?,?);"); 
+				.prepareStatement("INSERT OR REPLACE INTO mh_Achievements VALUES(?,?,?,?);");
 
 		mAddPlayerStatsStatement = connection
-				.prepareStatement("INSERT OR IGNORE INTO mh_Daily(ID, PLAYER_ID) VALUES(strftime(\"%Y%j\",\"now\"),?);"); 
+				.prepareStatement("INSERT OR IGNORE INTO mh_Daily(ID, PLAYER_ID) VALUES(strftime(\"%Y%j\",\"now\"),?);");
 
 		mLoadAchievementsStatement = connection
-				.prepareStatement("SELECT ACHIEVEMENT, DATE, PROGRESS FROM mh_Achievements WHERE PLAYER_ID = ?;"); 
+				.prepareStatement("SELECT ACHIEVEMENT, DATE, PROGRESS FROM mh_Achievements WHERE PLAYER_ID = ?;");
 
 		mGetPlayerUUID = connection
 				.prepareStatement("SELECT UUID FROM mh_Players WHERE NAME=?;");
@@ -185,13 +185,14 @@ public class SQLiteDataStore extends DatabaseDataStore {
 	@Override
 	protected void setupStatement_1(Connection connection) throws SQLException {
 		myAddPlayerStatement = connection
-				.prepareStatement("INSERT OR IGNORE INTO mh_Players VALUES(?, ?, (SELECT IFNULL(MAX(PLAYER_ID),0)+1 FROM mh_Players));");
+				.prepareStatement("INSERT OR IGNORE INTO mh_Players "
+						+ "VALUES(?, ?, (SELECT IFNULL(MAX(PLAYER_ID),0)+1 FROM mh_Players),"
+						+ (MobHunting.config().learningMode ? "1" : "0") + ");");
 	}
 
 	@Override
 	public void saveStats(Set<StatStore> stats) throws DataStoreException {
 		try {
-			MobHunting.debug("Saving stats to Database.", "");
 			Statement statement = mConnection.createStatement();
 
 			HashSet<OfflinePlayer> names = new HashSet<OfflinePlayer>();
@@ -223,7 +224,7 @@ public class SQLiteDataStore extends DatabaseDataStore {
 			throw new DataStoreException(e);
 		}
 	}
-	
+
 	@Override
 	public List<StatStore> loadStats(StatType type, TimePeriod period, int count)
 			throws DataStoreException {
@@ -890,7 +891,8 @@ public class SQLiteDataStore extends DatabaseDataStore {
 					.println("[MobHunting]*** Adding new Player leaning mode to MobHunting Database ***");
 			String lm = MobHunting.config().learningMode ? "1" : "0";
 			statement
-					.executeUpdate("alter table `mh_Players` add column `LEARNING_MODE` INTEGER NOT NULL DEFAULT "+lm);
+					.executeUpdate("alter table `mh_Players` add column `LEARNING_MODE` INTEGER NOT NULL DEFAULT "
+							+ lm);
 		}
 
 		MobHunting.debug("Updating database triggers.");

@@ -14,7 +14,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.WeakHashMap;
-
 import net.milkbowl.vault.economy.Economy;
 
 import org.bukkit.Bukkit;
@@ -51,11 +50,13 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.mcstats.Metrics;
 import org.mcstats.Metrics.Graph;
 
-//import com.sk89q.worldguard.LocalPlayer;
-import com.sk89q.worldguard.bukkit.RegionQuery;
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.flags.DefaultFlag;
-import com.sk89q.worldguard.protection.flags.StateFlag.State;
+import com.sk89q.worldguard.protection.managers.RegionManager;
+//import com.sk89q.worldguard.LocalPlayer;
+//import com.sk89q.worldguard.bukkit.RegionQuery;
+//import com.sk89q.worldguard.protection.ApplicableRegionSet;
+//import com.sk89q.worldguard.protection.flags.StateFlag.State;
 
 import de.Keyle.MyPet.api.entity.MyPetEntity;
 import au.com.mineauz.MobHunting.achievements.*;
@@ -77,6 +78,7 @@ import au.com.mineauz.MobHunting.compatability.CompatibilityManager;
 import au.com.mineauz.MobHunting.compatability.DisguiseCraftCompat;
 import au.com.mineauz.MobHunting.compatability.EssentialsCompat;
 import au.com.mineauz.MobHunting.compatability.IDisguiseCompat;
+import au.com.mineauz.MobHunting.compatability.LibsDisguisesCompat;
 import au.com.mineauz.MobHunting.compatability.MinigamesCompat;
 import au.com.mineauz.MobHunting.compatability.MobArenaCompat;
 import au.com.mineauz.MobHunting.compatability.MobArenaHelper;
@@ -129,6 +131,7 @@ public class MobHunting extends JavaPlugin implements Listener {
 	private LeaderboardManager mLeaderboards;
 
 	private boolean mInitialized = false;
+	public boolean isWorldGuardLoaded = false;
 
 	// Metrics
 	Metrics metrics;
@@ -201,6 +204,8 @@ public class MobHunting extends JavaPlugin implements Listener {
 		CompatibilityManager.register(MythicMobsCompat.class, "MythicMobs");
 		CompatibilityManager.register(CitizensCompat.class, "Citizens");
 		CompatibilityManager.register(EssentialsCompat.class, "Essentials");
+		CompatibilityManager.register(LibsDisguisesCompat.class,
+				"LibsDisguises");
 		CompatibilityManager.register(IDisguiseCompat.class, "iDisguise");
 		CompatibilityManager.register(DisguiseCraftCompat.class,
 				"DisguiseCraft");
@@ -221,7 +226,7 @@ public class MobHunting extends JavaPlugin implements Listener {
 		if (getServer().getPluginManager().isPluginEnabled("WorldEdit")) {
 			cmd.registerCommand(new SelectCommand());
 		}
-		if (WorldGuardCompat.isWorldGuardSupported()) {
+		if (getServer().getPluginManager().isPluginEnabled("WorldGuard")) {
 			cmd.registerCommand(new RegionCommand());
 		}
 		cmd.registerCommand(new UpdateCommand());
@@ -600,6 +605,12 @@ public class MobHunting extends JavaPlugin implements Listener {
 			instance.getLogger().info("[Debug] " + String.format(text, args));
 	}
 
+	public static void learn(Player player, String text, Object... args) {
+		if (LearnCommand.isLearning(player))
+			player.sendMessage(ChatColor.AQUA + "[MobHunting] "
+					+ String.format(text, args));
+	}
+
 	@EventHandler
 	private void onWorldLoad(WorldLoadEvent event) {
 		List<Area> areas = mWhitelistedAreas.get(event.getWorld().getUID());
@@ -681,27 +692,26 @@ public class MobHunting extends JavaPlugin implements Listener {
 		}
 	}
 
+	@SuppressWarnings("deprecation")
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	private void onMobDamage(EntityDamageByEntityEvent event) {
 		if (!(event.getEntity() instanceof LivingEntity)
 				|| !isHuntEnabledInWorld(event.getEntity().getWorld()))
 			return;
 
-		if (WorldGuardCompat.isWorldGuardSupported()) {
+		if (isWorldGuardLoaded) {
 			if ((event.getDamager() instanceof Player)
 					|| (MyPetCompat.isMyPetSupported() && event.getDamager() instanceof MyPetEntity)) {
-				RegionQuery query = WorldGuardCompat.getRegionContainer()
-						.createQuery();
-				ApplicableRegionSet set = query.getApplicableRegions(event
-						.getDamager().getLocation());
+				RegionManager regionManager = WorldGuardCompat
+						.getWorldGuardPlugin().getRegionManager(
+								event.getDamager().getWorld());
+				ApplicableRegionSet set = regionManager
+						.getApplicableRegions(event.getDamager().getLocation());
 				if (set != null) {
-					//LocalPlayer localPlayer = WorldGuardCompat
-					//		.getWorldGuardPlugin().wrapPlayer(
-					//				(Player) event.getDamager());
-					if (!set.testState(WorldGuardCompat.getLocalPlayer((Player) event.getDamager()), DefaultFlag.MOB_DAMAGE)) {
+					if (!set.allows(DefaultFlag.MOB_DAMAGE)) {
 						debug("KillBlocked: %s is hiding in WG region with MOB_DAMAGE %s",
-								event.getDamager().getName(), set.testState(
-										WorldGuardCompat.getLocalPlayer((Player) event.getDamager()), DefaultFlag.MOB_DAMAGE));
+								event.getDamager().getName(),
+								set.allows(DefaultFlag.MOB_DAMAGE));
 						return;
 					}
 				}
@@ -810,52 +820,37 @@ public class MobHunting extends JavaPlugin implements Listener {
 		}
 	}
 
-	@SuppressWarnings({ "unused" })
+	@SuppressWarnings({ "unused", "deprecation" })
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	private void onMobDeath(EntityDeathEvent event) {
 		LivingEntity killed = event.getEntity();
 		Player killer = killed.getKiller();
 
 		if (!isHuntEnabledInWorld(killed.getWorld())) {
-			if (WorldGuardCompat.isWorldGuardSupported()
-					&& WorldGuardCompat.isEnabledInConfig()) {
+			if (isWorldGuardLoaded && WorldGuardCompat.isEnabledInConfig()) {
 				if (killer instanceof Player
 						|| (MyPetCompat.isMyPetSupported() && killer instanceof MyPetEntity)) {
-					RegionQuery query = WorldGuardCompat.getRegionContainer()
-							.createQuery();
-					ApplicableRegionSet set = query.getApplicableRegions(killer
-							.getLocation());
+					ApplicableRegionSet set = WorldGuardCompat
+							.getWorldGuardPlugin()
+							.getRegionManager(killer.getWorld())
+							.getApplicableRegions(killer.getLocation());
 					if (set.size() > 0) {
-						//LocalPlayer localPlayer = WorldGuardCompat
-						//		.getWorldGuardPlugin().wrapPlayer(killer);
-						if (set.queryState(WorldGuardCompat.getLocalPlayer(killer),
-								WorldGuardCompat.getMobHuntingFlag()) == null) {
-							debug("KillBlocked %s(%d): Mobhunting disabled in world '%s'"
-									+ ",and MobHunting flag is null",
-									killed.getType(), killed.getEntityId(),
-									killed.getWorld().getName(),
-									set.queryState(WorldGuardCompat.getLocalPlayer(killer),
-											WorldGuardCompat
-													.getMobHuntingFlag()));
-							return;
-						} else if (set.queryState(WorldGuardCompat.getLocalPlayer(killer),
-								WorldGuardCompat.getMobHuntingFlag()) == State.ALLOW) {
+						if (set.allows(WorldGuardCompat.getMobHuntingFlag())) {
 							debug("KillBlocked %s(%d): Mobhunting disabled in world '%s'"
 									+ ",but MobHunting flag is (%s)",
 									killed.getType(), killed.getEntityId(),
 									killed.getWorld().getName(),
-									set.queryState(WorldGuardCompat.getLocalPlayer(killer),
-											WorldGuardCompat
-													.getMobHuntingFlag()));
+									set.allows(WorldGuardCompat
+											.getMobHuntingFlag()));
 						} else {
 							debug("KillBlocked %s(%d): Mobhunting disabled in world '%s',"
 									+ " and MobHunting flag is '%s')",
 									killed.getType(), killed.getEntityId(),
 									killed.getWorld().getName(),
-									set.queryState(WorldGuardCompat.getLocalPlayer(killer),
-											WorldGuardCompat
-													.getMobHuntingFlag()));
-
+									set.allows(WorldGuardCompat
+											.getMobHuntingFlag()));
+							learn(killer,
+									"MobHunting is disabled in this world by Admin, and you are not in a WorldGuard region wher MobHunting is set to 'ALLOW'.");
 							return;
 						}
 					} else {
@@ -863,7 +858,8 @@ public class MobHunting extends JavaPlugin implements Listener {
 								+ "WG is supported, but player not in a WG region.",
 								killed.getType(), killed.getEntityId(), killed
 										.getWorld().getName());
-
+						learn(killer,
+								"MobHunting is disabled in this world by Admin.");
 						return;
 					}
 				}
@@ -871,35 +867,48 @@ public class MobHunting extends JavaPlugin implements Listener {
 			} else {
 				// MobHunting is NOT allowed in world and no support for WG
 				// reject.
-				debug("KillBlocked %s(%d): Mobhunting disabled in world '%s' and Worldguard is not supported");
+				debug("KillBlocked: MobHunting disabled in world and Worldguard is not supported");
+				learn(killer, "MobHunting is disabled in this world by Admin.");
 				return;
 			}
 			// MobHunting is allowed in this world,
 			// Continue to ned if... (Do NOTHING).
 		}
 
-		if (WorldGuardCompat.isWorldGuardSupported()
-				&& WorldGuardCompat.isEnabledInConfig()) {
+		if (isWorldGuardLoaded && WorldGuardCompat.isEnabledInConfig()) {
 			if (killer instanceof Player
 					|| (MyPetCompat.isMyPetSupported() && killer instanceof MyPetEntity)) {
 
-				RegionQuery query = WorldGuardCompat.getRegionContainer()
-						.createQuery();
-				ApplicableRegionSet set = query.getApplicableRegions(killer
-						.getLocation());
+				ApplicableRegionSet set = WorldGuardCompat
+						.getWorldGuardPlugin()
+						.getRegionManager(killer.getWorld())
+						.getApplicableRegions(killer.getLocation());
 
 				if (set.size() > 0) {
-					//LocalPlayer localPlayer = WorldGuardCompat
-					//		.getWorldGuardPlugin().wrapPlayer(killer);
+					// LocalPlayer localPlayer = WorldGuardCompat
+					// .getWorldGuardPlugin().wrapPlayer(killer);
 					debug("Found %s Worldguard region(s): MOB_DAMAGE flag is %s",
-							set.size(),
-							set.queryState(WorldGuardCompat.getLocalPlayer(killer), DefaultFlag.MOB_DAMAGE));
-					if (set.queryState(WorldGuardCompat.getLocalPlayer(killer), DefaultFlag.MOB_DAMAGE) == State.DENY) {
+							set.size(), set.allows(DefaultFlag.MOB_DAMAGE));
+					// if
+					// (set.queryState(WorldGuardCompat.getLocalPlayer(killer),
+					// DefaultFlag.MOB_DAMAGE) == State.DENY) {
+					if (!set.allows(DefaultFlag.MOB_DAMAGE)) {
 						debug("KillBlocked: %s is hiding in WG region with MOB_DAMAGE %s",
-								killer.getName(), set.queryState(WorldGuardCompat.getLocalPlayer(killer),
-										DefaultFlag.MOB_DAMAGE));
+								killer.getName(),
+								set.allows(DefaultFlag.MOB_DAMAGE));
+						learn(killer,
+								"You don't get a reward because you are in a WorldGuard region with 'MOB-DAMAGE DENY' flag set.");
+						return;
+					} else if (!set
+							.allows(WorldGuardCompat.getMobHuntingFlag())) {
+						debug("KillBlocked: %s is hiding in WG region with MOBHUNTING FLAG %s",
+								killer.getName(), set.allows(WorldGuardCompat
+										.getMobHuntingFlag()));
+						learn(killer,
+								"You don't get a reward because you are in a WorldGuard region with 'MOBHUNTING DENY' flag set.");
 						return;
 					}
+
 				}
 			}
 		}
@@ -944,20 +953,26 @@ public class MobHunting extends JavaPlugin implements Listener {
 					&& !mConfig.mobarenaGetRewards) {
 				debug("KillBlocked: %s is currently playing MobArena.",
 						killer.getName());
+				learn(killer, "You don't get rewards while playing MobArena");
 				return;
 			} else if (PVPArenaCompat.isEnabledInConfig()
 					&& PVPArenaHelper.isPlayingPVPArena(killer)
 					&& !mConfig.pvparenaGetRewards) {
 				debug("KillBlocked: %s is currently playing PvpArena.",
 						killer.getName());
+				learn(killer, "You don't get rewards while playing PvpArena");
 				return;
 			} else if (EssentialsCompat.isSupported()) {
 				if (EssentialsCompat.isGodModeEnabled(killer)) {
 					debug("KillBlocked: %s is in God mode", killer.getName());
+					learn(killer,
+							"You don't get rewards while you are in God mode");
 					return;
 				} else if (EssentialsCompat.isVanishedModeEnabled(killer)) {
 					debug("KillBlocked: %s is in Vanished mode",
 							killer.getName());
+					learn(killer,
+							"You don't get rewards while you are Vanished");
 					return;
 				}
 
@@ -966,6 +981,9 @@ public class MobHunting extends JavaPlugin implements Listener {
 			if (!hasPermissionToKillMob(killer, killed)) {
 				debug("KillBlocked: %s has not permission to kill %s.",
 						killer.getName(), killed.getName());
+				learn(killer,
+						"You don't have permission to get reward for killing this mob:"
+								+ killed.getCustomName());
 				return;
 			}
 		}
@@ -974,12 +992,18 @@ public class MobHunting extends JavaPlugin implements Listener {
 				&& mConfig.getKillConsoleCmd(killed).equals("")) {
 			debug("KillBlocked %s(%d): There is no reward for this Mob/Player",
 					killed.getType(), killed.getEntityId());
+			if (killer != null)
+				learn(killer, "There is no reward for killing this mob/player:"
+						+ killed.getCustomName());
 			return;
 		}
 
 		if (killed.hasMetadata("MH:blocked")) {
 			debug("KillBlocked %s(%d): Mob has MH:blocked meta (probably spawned from a mob spawner)",
 					killed.getType(), killed.getEntityId());
+			learn(killer, "There is no reward for killing this mob/player:"
+					+ killed.getCustomName()
+					+ "is was probaly spawned from a mob spawner");
 			return;
 		}
 
@@ -987,6 +1011,8 @@ public class MobHunting extends JavaPlugin implements Listener {
 				|| !isHuntEnabled(killer)) {
 			if (killer != null && killer.getGameMode() == GameMode.CREATIVE)
 				debug("KillBlocked %s: In creative mode", killer.getName());
+			learn(killer,
+					"You don't get MobHunting rewards, when you are in Creative mode.");
 			return;
 		}
 
@@ -1124,7 +1150,9 @@ public class MobHunting extends JavaPlugin implements Listener {
 			}
 
 			if (killed instanceof Player && killer instanceof Player) {
-				if (!CitizensCompat.isNPC(killed)) {
+				if (CitizensCompat.isDisabledInConfig()
+						|| !CitizensCompat.isCitizensSupported()
+						|| !CitizensCompat.isNPC(killed)) {
 					mEconomy.withdrawPlayer((Player) killed, cash);
 					killed.sendMessage(ChatColor.RED
 							+ ""
@@ -1134,15 +1162,8 @@ public class MobHunting extends JavaPlugin implements Listener {
 					debug("%s lost %s", killed.getName(), mEconomy.format(cash));
 				}
 			}
-			Set<String> ranks = mConfig.rankMultiplier.keySet();
-			for (String rank : ranks) {
-				if (killer.hasPermission(rank)) {
-					cash = cash
-							* Double.valueOf(mConfig.rankMultiplier.get(rank));
-					debug("Reward is multiplied by rankMultiplier permissionNode=%s multiplier=%s",
-							rank, mConfig.rankMultiplier.get(rank));
-				}
-			}
+
+			cash = cash * getRankMultiplier(killer);
 
 			if (info.assister == null) {
 				if (cash > 0) {
@@ -1255,6 +1276,27 @@ public class MobHunting extends JavaPlugin implements Listener {
 				}
 			}
 		}
+	}
+
+	private double getRankMultiplier(Player killer) {
+		Set<String> ranks = mConfig.rankMultiplier.keySet();
+		for (String rank : ranks) {
+			if (killer.hasPermission(rank)) {
+				String mul = mConfig.rankMultiplier.get(rank);
+				if (mul != null) {
+
+					debug("Reward is multiplied by rankMultiplier permissionNode=%s multiplier=%s",
+							rank, mul);
+					return Double.valueOf(mul);
+				} else {
+					getLogger()
+							.severe(Messages
+									.getString("[MobHunting] Missing Rank Multiplier in config.yml:"
+											+ mul));
+				}
+			}
+		}
+		return 1;
 	}
 
 	@SuppressWarnings("unused")
@@ -1400,6 +1442,28 @@ public class MobHunting extends JavaPlugin implements Listener {
 
 	public LeaderboardManager getLeaderboards() {
 		return mLeaderboards;
+	}
+
+	// ***************************************************************************
+	// Disguses
+	// ***************************************************************************
+
+	public boolean isDisguised(Entity entity) {
+		return LibsDisguisesCompat.isDisguised((Player) entity)
+				|| DisguiseCraftCompat.isDisguised((Player) entity)
+				|| IDisguiseCompat.isDisguised(entity);
+	}
+
+	public boolean isDisguisedAsAgresiveMob(Entity entity) {
+		return LibsDisguisesCompat.isAggresiveDisguise((Player) entity)
+				|| DisguiseCraftCompat.isAggresiveDisguise((Player) entity)
+				|| IDisguiseCompat.isAggresiveDisguise((Player) entity);
+	}
+
+	public boolean isDisguisedAsPlayer(Entity entity) {
+		return LibsDisguisesCompat.isPlayerDisguise((Player) entity)
+				|| DisguiseCraftCompat.isPlayerDisguise((Player) entity)
+				|| IDisguiseCompat.isPlayerDisguise((Player) entity);
 	}
 
 	// ***************************************************************************

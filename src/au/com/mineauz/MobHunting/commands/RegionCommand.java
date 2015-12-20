@@ -85,7 +85,7 @@ public class RegionCommand implements ICommand, Listener {
 			String[] args) {
 
 		ArrayList<String> items = new ArrayList<String>();
-		if (WorldGuardCompat.isWorldGuardSupported()) {
+		if (MobHunting.instance.isWorldGuardLoaded) {
 			if (args.length == 1) {
 				if ((sender instanceof Player)
 						|| (MyPetCompat.isMyPetSupported() && sender instanceof MyPetEntity)) {
@@ -142,7 +142,7 @@ public class RegionCommand implements ICommand, Listener {
 		if (args.length == 0)
 			return false;
 
-		if (WorldGuardCompat.isWorldGuardSupported()) {
+		if (MobHunting.instance.isWorldGuardLoaded) {
 			if ((sender instanceof Player)
 					|| (MyPetCompat.isMyPetSupported() && sender instanceof MyPetEntity)) {
 				RegionQuery query = WorldGuardCompat.getRegionContainer()

@@ -846,8 +846,9 @@ public class Config extends AutoConfig {
 	public double rewardRounding = 0.01;
 	@ConfigField(name = "NEWPLAYER_LEARNING_MODE", category = "general", comment = "When a new playerjoins the server he will by default start"+
 	"\nin 'LEARNING MODE' and get extra information about when he get rewards and not,"
-	+ "\nwhen killing Mobs. The player can disable this InGame by using the command '/mh learn'")
-	public boolean learningMode = true;
+	+ "\nwhen killing Mobs. The player can disable this InGame by using the command '/mh learn'"
+	+ "\nNotice that this is Case sentive!!!")
+	public boolean learningMode = false;
 	
 
 	@Override
