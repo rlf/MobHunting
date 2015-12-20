@@ -127,7 +127,10 @@ public class LearnCommand implements ICommand, Listener {
 	}
 
 	public static boolean isLearning(Player player) {
-		return playerStore.get(player.getUniqueId()).getLearningMode();
+		if (playerStore.containsKey(player))
+			return playerStore.get(player.getUniqueId()).getLearningMode();
+		else
+			return false;
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
