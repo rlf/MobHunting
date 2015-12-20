@@ -1445,7 +1445,7 @@ public class MobHunting extends JavaPlugin implements Listener {
 	}
 
 	// ***************************************************************************
-	// Disguses
+	// Disguises
 	// ***************************************************************************
 
 	public boolean isDisguised(Entity entity) {

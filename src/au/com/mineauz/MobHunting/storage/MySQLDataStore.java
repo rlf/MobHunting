@@ -102,7 +102,7 @@ public class MySQLDataStore extends DatabaseDataStore {
 		// Create new empty tables if they do not exist
 		String lm = MobHunting.config().learningMode ? "1" : "0";
 		create.executeUpdate("CREATE TABLE IF NOT EXISTS mh_Players (UUID CHAR(40) PRIMARY KEY, NAME CHAR(20), PLAYER_ID INTEGER NOT NULL AUTO_INCREMENT, "
-				+ "KEY PLAYER_ID (PLAYER_ID), LEARNING_MODE INTEGER NOT NUL DEFAULT "
+				+ "KEY PLAYER_ID (PLAYER_ID), LEARNING_MODE INTEGER NOT NULL DEFAULT "
 				+ lm + " )");
 		String dataString = "";
 		for (StatType type : StatType.values())

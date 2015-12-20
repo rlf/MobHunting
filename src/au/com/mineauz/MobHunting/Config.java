@@ -733,8 +733,7 @@ public class Config extends AutoConfig {
 	// #####################################################################################
 	// Multiplier by rank / permission
 	// #####################################################################################
-	@ConfigField(name = "rank-multiplier", category = "multiplier"
-			)
+	@ConfigField(name = "rank-multiplier", category = "multiplier")
 	public HashMap<String, String> rankMultiplier = new HashMap<String, String>();
 	{
 		rankMultiplier.put("mobhunting.multiplier.guest", "0.9");
@@ -749,6 +748,10 @@ public class Config extends AutoConfig {
 	// #####################################################################################
 	@ConfigField(name = "pvp-allowed", category = "pvp", comment = "Set pvpAllowed=false to disable rewards on killing other players.")
 	public boolean pvpAllowed = true;
+	@ConfigField(name = "rob-from-victim", category = "pvp", comment = "Set rob-from-victim=true to steal from the victim or "
+			+ "\nrob-from-victim=false to get the reward mpney from the server.")
+	public boolean robFromVictim = true;
+
 	@ConfigField(name = "pvp-kill-prize", category = "pvp", comment = "The kill prize kan be a number to stel x dollars from the killed player,"
 			+ "\nor it kan be a cut in percent of his balance.")
 	public String pvpKillPrize = "1.5%";
@@ -789,10 +792,10 @@ public class Config extends AutoConfig {
 
 	@ConfigField(name = "disable-integration-essentials", category = "plugins", comment = "Disable integration with Essentials")
 	public boolean disableIntegrationEssentials = false;
-	
+
 	@ConfigField(name = "disable-integration-i-disguise", category = "plugins", comment = "Disable integration with iDisguise")
 	public boolean disableIntegrationIDisguise = false;
-	
+
 	@ConfigField(name = "disable-integration-disguisecraft", category = "plugins", comment = "Disable integration with DisguiseCcraft")
 	public boolean disableIntegrationDisguiseCraft = false;
 
@@ -844,12 +847,11 @@ public class Config extends AutoConfig {
 			+ "\nSet rounding_reward=5 if you want multipla of 5 IE. 10,15,20,25..."
 			+ "\nSet rounding_reward=2 if you want multipla of 2 IE. 10,12,14,16...")
 	public double rewardRounding = 0.01;
-	@ConfigField(name = "NEWPLAYER_LEARNING_MODE", category = "general", comment = "When a new playerjoins the server he will by default start"+
-	"\nin 'LEARNING MODE' and get extra information about when he get rewards and not,"
-	+ "\nwhen killing Mobs. The player can disable this InGame by using the command '/mh learn'"
-	+ "\nNotice that this is Case sentive!!!")
+	@ConfigField(name = "NEWPLAYER_LEARNING_MODE", category = "general", comment = "When a new playerjoins the server he will by default start"
+			+ "\nin 'LEARNING MODE' and get extra information about when he get rewards and not,"
+			+ "\nwhen killing Mobs. The player can disable this InGame by using the command '/mh learn'"
+			+ "\nNotice that this is Case sentive!!!")
 	public boolean learningMode = false;
-	
 
 	@Override
 	protected void onPostLoad() throws InvalidConfigurationException {
