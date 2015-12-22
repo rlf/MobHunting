@@ -19,6 +19,7 @@ import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import de.Keyle.MyPet.api.entity.MyPetEntity;
 import au.com.mineauz.MobHunting.Messages;
 import au.com.mineauz.MobHunting.MobHunting;
+import au.com.mineauz.MobHunting.compatability.CompatibilityManager;
 import au.com.mineauz.MobHunting.compatability.MyPetCompat;
 import au.com.mineauz.MobHunting.compatability.WorldGuardCompat;
 
@@ -85,7 +86,7 @@ public class RegionCommand implements ICommand, Listener {
 			String[] args) {
 
 		ArrayList<String> items = new ArrayList<String>();
-		if (MobHunting.instance.isWorldGuardLoaded) {
+		if (CompatibilityManager.isPluginLoaded(WorldGuardCompat.class)) {
 			if (args.length == 1) {
 				if ((sender instanceof Player)
 						|| (MyPetCompat.isMyPetSupported() && sender instanceof MyPetEntity)) {
@@ -130,7 +131,7 @@ public class RegionCommand implements ICommand, Listener {
 					items.add("allow");
 					items.add("deny");
 					items.add(" ");
-				} else 
+				} else
 					items.add("mobhunting");
 			}
 		}
@@ -142,7 +143,7 @@ public class RegionCommand implements ICommand, Listener {
 		if (args.length == 0)
 			return false;
 
-		if (MobHunting.instance.isWorldGuardLoaded) {
+		if (CompatibilityManager.isPluginLoaded(WorldGuardCompat.class)) {
 			if ((sender instanceof Player)
 					|| (MyPetCompat.isMyPetSupported() && sender instanceof MyPetEntity)) {
 				RegionQuery query = WorldGuardCompat.getRegionContainer()
@@ -223,5 +224,4 @@ public class RegionCommand implements ICommand, Listener {
 
 		return false;
 	}
-
 }

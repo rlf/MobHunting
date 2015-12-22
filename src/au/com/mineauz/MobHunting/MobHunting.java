@@ -14,6 +14,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.WeakHashMap;
+
 import net.milkbowl.vault.economy.Economy;
 
 import org.bukkit.Bukkit;
@@ -76,6 +77,7 @@ import au.com.mineauz.MobHunting.commands.RegionCommand;
 import au.com.mineauz.MobHunting.compatability.CitizensCompat;
 import au.com.mineauz.MobHunting.compatability.CompatibilityManager;
 import au.com.mineauz.MobHunting.compatability.DisguiseCraftCompat;
+import au.com.mineauz.MobHunting.compatability.DisguisesHelper;
 import au.com.mineauz.MobHunting.compatability.EssentialsCompat;
 import au.com.mineauz.MobHunting.compatability.IDisguiseCompat;
 import au.com.mineauz.MobHunting.compatability.LibsDisguisesCompat;
@@ -131,7 +133,6 @@ public class MobHunting extends JavaPlugin implements Listener {
 	private LeaderboardManager mLeaderboards;
 
 	private boolean mInitialized = false;
-	public boolean isWorldGuardLoaded = false;
 
 	// Metrics
 	Metrics metrics;
@@ -199,7 +200,7 @@ public class MobHunting extends JavaPlugin implements Listener {
 		CompatibilityManager.register(MinigamesCompat.class, "Minigames");
 		CompatibilityManager.register(MyPetCompat.class, "MyPet");
 		CompatibilityManager.register(WorldGuardCompat.class, "WorldGuard");
-		CompatibilityManager.register(MobArenaCompat.class, "MobArena");
+		CompatibilityManager.register(MobArenaCompat.class, "MobArenaCompat");
 		CompatibilityManager.register(PVPArenaCompat.class, "PVPArena");
 		CompatibilityManager.register(MythicMobsCompat.class, "MythicMobs");
 		CompatibilityManager.register(CitizensCompat.class, "Citizens");
@@ -223,12 +224,12 @@ public class MobHunting extends JavaPlugin implements Listener {
 		cmd.registerCommand(new LeaderboardCommand());
 		cmd.registerCommand(new ClearGrindingCommand());
 		cmd.registerCommand(new WhitelistAreaCommand());
-		if (getServer().getPluginManager().isPluginEnabled("WorldEdit")) {
+		// if (getServer().getPluginManager().isPluginEnabled("WorldEdit")) {
+		if (CompatibilityManager.isPluginLoaded(WorldEditCompat.class))
 			cmd.registerCommand(new SelectCommand());
-		}
-		if (getServer().getPluginManager().isPluginEnabled("WorldGuard")) {
+		// if (getServer().getPluginManager().isPluginEnabled("WorldGuard")) {
+		if (CompatibilityManager.isPluginLoaded(WorldGuardCompat.class))
 			cmd.registerCommand(new RegionCommand());
-		}
 		cmd.registerCommand(new UpdateCommand());
 		cmd.registerCommand(new VersionCommand());
 		cmd.registerCommand(new LearnCommand());
@@ -326,6 +327,9 @@ public class MobHunting extends JavaPlugin implements Listener {
 
 		mModifiers.add(new FlyingPenalty());
 		mModifiers.add(new GrindingPenalty());
+		mModifiers.add(new Undercover());
+		mModifiers.add(new CoverBlown());
+		mModifiers.add(new RankBonus());
 
 		// Check if horses exist
 		try {
@@ -698,19 +702,21 @@ public class MobHunting extends JavaPlugin implements Listener {
 		if (!(event.getEntity() instanceof LivingEntity)
 				|| !isHuntEnabledInWorld(event.getEntity().getWorld()))
 			return;
-
-		if (isWorldGuardLoaded) {
-			if ((event.getDamager() instanceof Player)
-					|| (MyPetCompat.isMyPetSupported() && event.getDamager() instanceof MyPetEntity)) {
+		Entity damager = event.getDamager();
+		Entity damaged = event.getEntity();
+		debug("damager=%s, damaged=%s", damager.getName(), damaged.getName());
+		if (CompatibilityManager.isPluginLoaded(WorldGuardCompat.class)) {
+			if ((damager instanceof Player)
+					|| (MyPetCompat.isMyPetSupported() && damager instanceof MyPetEntity)) {
 				RegionManager regionManager = WorldGuardCompat
 						.getWorldGuardPlugin().getRegionManager(
-								event.getDamager().getWorld());
+								damager.getWorld());
 				ApplicableRegionSet set = regionManager
-						.getApplicableRegions(event.getDamager().getLocation());
+						.getApplicableRegions(damager.getLocation());
 				if (set != null) {
 					if (!set.allows(DefaultFlag.MOB_DAMAGE)) {
 						debug("KillBlocked: %s is hiding in WG region with MOB_DAMAGE %s",
-								event.getDamager().getName(),
+								damager.getName(),
 								set.allows(DefaultFlag.MOB_DAMAGE));
 						return;
 					}
@@ -719,7 +725,7 @@ public class MobHunting extends JavaPlugin implements Listener {
 		}
 
 		DamageInformation info = null;
-		info = mDamageHistory.get(event.getEntity());
+		info = mDamageHistory.get(damaged);
 		if (info == null)
 			info = new DamageInformation();
 
@@ -728,28 +734,28 @@ public class MobHunting extends JavaPlugin implements Listener {
 		Player cause = null;
 		ItemStack weapon = null;
 
-		if (event.getDamager() instanceof Player) {
-			cause = (Player) event.getDamager();
+		if (damager instanceof Player) {
+			cause = (Player) damager;
+			// TODO:
 			// if (cause.is
 		}
 
 		boolean projectile = false;
-		if (event.getDamager() instanceof Projectile) {
-			if (((Projectile) event.getDamager()).getShooter() instanceof Player)
-				cause = (Player) ((Projectile) event.getDamager()).getShooter();
+		if (damager instanceof Projectile) {
+			if (((Projectile) damager).getShooter() instanceof Player)
+				cause = (Player) ((Projectile) damager).getShooter();
 
-			if (event.getDamager() instanceof ThrownPotion)
-				weapon = ((ThrownPotion) event.getDamager()).getItem();
+			if (damager instanceof ThrownPotion)
+				weapon = ((ThrownPotion) damager).getItem();
 
 			info.mele = false;
 			projectile = true;
 		} else
 			info.mele = true;
 
-		if (event.getDamager() instanceof Wolf
-				&& ((Wolf) event.getDamager()).isTamed()
-				&& ((Wolf) event.getDamager()).getOwner() instanceof Player) {
-			cause = (Player) ((Wolf) event.getDamager()).getOwner();
+		if (damager instanceof Wolf && ((Wolf) damager).isTamed()
+				&& ((Wolf) damager).getOwner() instanceof Player) {
+			cause = (Player) ((Wolf) damager).getOwner();
 
 			info.mele = false;
 			info.wolfAssist = true;
@@ -780,7 +786,36 @@ public class MobHunting extends JavaPlugin implements Listener {
 				info.wasFlying = true;
 
 			info.attackerPosition = cause.getLocation().clone();
-			mDamageHistory.put((LivingEntity) event.getEntity(), info);
+
+			debug("cause=%s", cause);
+			if (!info.playerUndercover)
+				if (DisguisesHelper.isDisguised(cause)) {
+					if (DisguisesHelper.isDisguisedAsAgresiveMob(cause)) {
+						debug("[MobHunting] The killer was diguised as an agressive mob");
+						info.playerUndercover = true;
+					} else
+						debug("[MobHunting] The killer was diguised as an passive mob");
+					if (cause instanceof Player)
+						damager.sendMessage(ChatColor.GREEN + cause.getName()
+								+ " disguise was blown!");
+					DisguisesHelper.undisguiseEntity(cause);
+				} else
+					debug("[MobHunting] The killer was NOT diguised");
+
+			if (!info.mobCoverBlown)
+				if (DisguisesHelper.isDisguised(event.getEntity())) {
+					if (DisguisesHelper.isDisguisedAsAgresiveMob(damaged)) {
+						debug("[MobHunting] The killed was diguised as an agressive mob");
+						info.mobCoverBlown = true;
+					} else
+						debug("[MobHunting] The killed was diguised as an passive mob");
+					if (damaged instanceof Player)
+						damaged.sendMessage(ChatColor.GREEN + damaged.getName()
+								+ " disguise was blown!");
+				} else
+					debug("[MobHunting] The killed was NOT diguised");
+
+			mDamageHistory.put((LivingEntity) damaged, info);
 		}
 	}
 
@@ -827,7 +862,8 @@ public class MobHunting extends JavaPlugin implements Listener {
 		Player killer = killed.getKiller();
 
 		if (!isHuntEnabledInWorld(killed.getWorld())) {
-			if (isWorldGuardLoaded && WorldGuardCompat.isEnabledInConfig()) {
+			if (CompatibilityManager.isPluginLoaded(WorldGuardCompat.class)
+					&& WorldGuardCompat.isEnabledInConfig()) {
 				if (killer instanceof Player
 						|| (MyPetCompat.isMyPetSupported() && killer instanceof MyPetEntity)) {
 					ApplicableRegionSet set = WorldGuardCompat
@@ -871,11 +907,13 @@ public class MobHunting extends JavaPlugin implements Listener {
 				learn(killer, "MobHunting is disabled in this world by Admin.");
 				return;
 			}
+
 			// MobHunting is allowed in this world,
 			// Continue to ned if... (Do NOTHING).
 		}
 
-		if (isWorldGuardLoaded && WorldGuardCompat.isEnabledInConfig()) {
+		if (CompatibilityManager.isPluginLoaded(WorldGuardCompat.class)
+				&& WorldGuardCompat.isEnabledInConfig()) {
 			if (killer instanceof Player
 					|| (MyPetCompat.isMyPetSupported() && killer instanceof MyPetEntity)) {
 
@@ -885,13 +923,8 @@ public class MobHunting extends JavaPlugin implements Listener {
 						.getApplicableRegions(killer.getLocation());
 
 				if (set.size() > 0) {
-					// LocalPlayer localPlayer = WorldGuardCompat
-					// .getWorldGuardPlugin().wrapPlayer(killer);
 					debug("Found %s Worldguard region(s): MOB_DAMAGE flag is %s",
 							set.size(), set.allows(DefaultFlag.MOB_DAMAGE));
-					// if
-					// (set.queryState(WorldGuardCompat.getLocalPlayer(killer),
-					// DefaultFlag.MOB_DAMAGE) == State.DENY) {
 					if (!set.allows(DefaultFlag.MOB_DAMAGE)) {
 						debug("KillBlocked: %s is hiding in WG region with MOB_DAMAGE %s",
 								killer.getName(),
@@ -1016,8 +1049,6 @@ public class MobHunting extends JavaPlugin implements Listener {
 			return;
 		}
 
-		// updateMetrics(killer, killed);
-
 		DamageInformation info = null;
 		if (killed instanceof LivingEntity
 				&& mDamageHistory.containsKey((LivingEntity) killed)) {
@@ -1042,6 +1073,9 @@ public class MobHunting extends JavaPlugin implements Listener {
 			info.attacker = killer;
 			info.attackerPosition = killer.getLocation();
 			info.usedWeapon = true;
+			// info.playerUndercover =
+			// DisguisesHelper.isDisguisedAsAgresiveMob(killer);
+			// info.mobCoverBlown=DisguisesHelper.isDisguised(killed);
 		}
 
 		if ((System.currentTimeMillis() - info.lastAttackTime) > mConfig.killTimeout * 1000) {
@@ -1113,13 +1147,17 @@ public class MobHunting extends JavaPlugin implements Listener {
 		// Apply the modifiers
 		ArrayList<String> modifiers = new ArrayList<String>();
 		for (IModifier mod : mModifiers) {
+			debug("mod=%s", mod.getName());
 			if (mod.doesApply(killed, killer, data, info, lastDamageCause)) {
+				debug("info.playerUndercover=%s", info.playerUndercover);
 				double amt = mod.getMultiplier(killed, killer, data, info,
 						lastDamageCause);
 
 				if (amt != 1.0) {
 					modifiers.add(mod.getName());
 					multiplier *= amt;
+					debug("Number of modifiers=%s multiplier=%s",
+							modifiers.size(), multiplier);
 				}
 			}
 		}
@@ -1138,6 +1176,21 @@ public class MobHunting extends JavaPlugin implements Listener {
 
 		cash *= multiplier;
 
+		/**
+		 * if (DisguisesHelper.isDisguised(killer)) { if
+		 * (DisguisesHelper.isDisguisedAsAgresiveMob(killer)) { if (killer
+		 * instanceof Player) {
+		 * debug("[MobHunting] The killer was diguised as an agressive mob"); }
+		 * } else
+		 * debug("[MobHunting] The killer was diguised as an passive mob"); }
+		 * else debug("[MobHunting] The killer was NOT diguised");
+		 * 
+		 * if (DisguisesHelper.isDisguised(killed)) { if
+		 * (DisguisesHelper.isDisguisedAsAgresiveMob(killed))
+		 * debug("[MobHunting] The killed was diguised as an agressive mob");
+		 * else debug("[MobHunting] The killed was diguised as an passive mob");
+		 * } else debug("[MobHunting] The killed was NOT diguised");
+		 **/
 		if ((cash >= 0.01) || (cash <= -0.01)) {
 			MobHuntKillEvent event2 = new MobHuntKillEvent(data, info, killed,
 					killer);
@@ -1166,7 +1219,7 @@ public class MobHunting extends JavaPlugin implements Listener {
 				}
 			}
 
-			cash = cash * getRankMultiplier(killer);
+			// cash = cash * getRankMultiplier(killer);
 
 			if (info.assister == null) {
 				if (cash > 0) {
@@ -1445,28 +1498,6 @@ public class MobHunting extends JavaPlugin implements Listener {
 
 	public LeaderboardManager getLeaderboards() {
 		return mLeaderboards;
-	}
-
-	// ***************************************************************************
-	// Disguises
-	// ***************************************************************************
-
-	public boolean isDisguised(Entity entity) {
-		return LibsDisguisesCompat.isDisguised((Player) entity)
-				|| DisguiseCraftCompat.isDisguised((Player) entity)
-				|| IDisguiseCompat.isDisguised(entity);
-	}
-
-	public boolean isDisguisedAsAgresiveMob(Entity entity) {
-		return LibsDisguisesCompat.isAggresiveDisguise((Player) entity)
-				|| DisguiseCraftCompat.isAggresiveDisguise((Player) entity)
-				|| IDisguiseCompat.isAggresiveDisguise((Player) entity);
-	}
-
-	public boolean isDisguisedAsPlayer(Entity entity) {
-		return LibsDisguisesCompat.isPlayerDisguise((Player) entity)
-				|| DisguiseCraftCompat.isPlayerDisguise((Player) entity)
-				|| IDisguiseCompat.isPlayerDisguise((Player) entity);
 	}
 
 	// ***************************************************************************

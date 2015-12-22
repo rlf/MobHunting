@@ -130,6 +130,10 @@ public class Config extends AutoConfig {
 						+ "\nYou can also specify the message send to the player."
 						+ "\nYou can run many console commands on each line, each command"
 						+ "\nmust be separated by |");
+		setCategoryComment(
+				"disguises",
+				"Here is where can define the actions when a player is under disguise (attacker)"
+						+ "\n or when the attacked (victim)");
 
 		setCategoryComment(
 				"plugins",
@@ -761,6 +765,33 @@ public class Config extends AutoConfig {
 	public String pvpKillCmdDesc = "You got {killed_player}\'s skull";
 
 	// #####################################################################################
+	// Disguises
+	// #####################################################################################
+	@ConfigField(name = "disable-integration-i-disguise", category = "disguises", comment = "Disable integration with iDisguise")
+	public boolean disableIntegrationIDisguise = false;
+
+	@ConfigField(name = "disable-integration-disguisecraft", category = "disguises", comment = "Disable integration with DisguiseCcraft")
+	public boolean disableIntegrationDisguiseCraft = false;
+
+	@ConfigField(name = "disable-integration-libsdisguises", category = "disguises", comment = "Disable integration with LibsDisguises")
+	public boolean disableIntegrationLibsDisguises = false;
+
+	@ConfigField(name = "remove-disguise-when-attacking", category = "disguises", comment = "Set pvpAllowed=false to disable rewards on killing other players.")
+	public boolean removeDisguiseWhenAttacking = true;
+	
+	@ConfigField(name = "remove-disguise-when-attacked", category = "disguises", comment = "Set pvpAllowed=false to disable rewards on killing other players.")
+	public boolean removeDisguiseWhenAttacked = true;
+	
+	@ConfigField(name = "undercover-multiplier", category = "disguises", comment = "Bonus multiplier for killing while disgused." 
+			+"\nCan be both positive an negative = reward or penalty"
+			+"\nand over and under 1 = raise or lower the reward. ")
+	public double undercoverMultiplier = 1.05;
+	@ConfigField(name = "cover-blown-multiplier", category = "disguises", comment = "Bonus multiplier for killing a disgused player." 
+			+"\nCan be both positive an negative = reward or penalty"
+			+"\nand over and under 1 = raise or lower the reward. ")
+	public double coverBlownMultiplier = 1.05;
+
+	// #####################################################################################
 	// Plugin integration
 	// #####################################################################################
 	@ConfigField(name = "disable-integration-mobarena", category = "plugins", comment = "Disable integration with MobArena")
@@ -792,15 +823,6 @@ public class Config extends AutoConfig {
 
 	@ConfigField(name = "disable-integration-essentials", category = "plugins", comment = "Disable integration with Essentials")
 	public boolean disableIntegrationEssentials = false;
-
-	@ConfigField(name = "disable-integration-i-disguise", category = "plugins", comment = "Disable integration with iDisguise")
-	public boolean disableIntegrationIDisguise = false;
-
-	@ConfigField(name = "disable-integration-disguisecraft", category = "plugins", comment = "Disable integration with DisguiseCcraft")
-	public boolean disableIntegrationDisguiseCraft = false;
-
-	@ConfigField(name = "disable-integration-libsdisguises", category = "plugins", comment = "Disable integration with LibsDisguises")
-	public boolean disableIntegrationLibsDisguises = false;
 
 	// #####################################################################################
 	// Database

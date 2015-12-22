@@ -1,8 +1,12 @@
 package au.com.mineauz.MobHunting.compatability;
 
-import me.libraryaddict.disguise.DisguiseAPI;
-import me.libraryaddict.disguise.disguisetypes.Disguise;
-import me.libraryaddict.disguise.disguisetypes.DisguiseType;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
+import de.robingrether.idisguise.api.*;
+import de.robingrether.idisguise.disguise.*;
+//import de.robingrether.idisguise.iDisguise;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
@@ -18,8 +22,7 @@ public class IDisguiseCompat implements Listener {
 	// http://dev.bukkit.org/bukkit-plugins/idisguise/pages/api/
 
 	private static Plugin mPlugin;
-	private static boolean supported = false;
-	private DisguiseAPI api;
+	private static DisguiseAPI api;
 
 	public IDisguiseCompat() {
 		if (isDisabledInConfig()) {
@@ -37,7 +40,6 @@ public class IDisguiseCompat implements Listener {
 					"Enabling compatability with iDisguise ("
 							+ getiDisguise().getDescription().getVersion()
 							+ ")");
-			supported = true;
 		}
 	}
 
@@ -49,10 +51,6 @@ public class IDisguiseCompat implements Listener {
 		return mPlugin;
 	}
 
-	public static boolean isSupported() {
-		return supported;
-	}
-
 	public static boolean isDisabledInConfig() {
 		return MobHunting.config().disableIntegrationIDisguise;
 	}
@@ -62,23 +60,62 @@ public class IDisguiseCompat implements Listener {
 	}
 
 	public static boolean isDisguised(Entity entity) {
-		return DisguiseAPI.isDisguised(entity);
+		if (entity instanceof Player)
+			return api.isDisguised((Player) entity);
+		else
+			return false;
 	}
 
-	public static Disguise getDisguise(Player player) {
-		return DisguiseAPI.getDisguise(player);
+	public static Disguise getDisguise(Entity entity) {
+		if (entity instanceof Player)
+			return api.getDisguise((Player) entity);
+		else
+			return null;
 	}
 
-	public static boolean isAggresiveDisguise(Player player) {
-		Disguise d = getDisguise(player);
-		if (d.getType().equals(DisguiseType.ZOMBIE))
+	public static void disguisePlayer(Player player, Disguise disguise) {
+		api.disguiseToAll(player, disguise);
+	}
+
+	public static void undisguisePlayer(Entity entity) {
+		if (entity instanceof Player)
+			api.undisguiseToAll((Player)entity);
+	}
+
+	private static final DisguiseType aggresiveList[] = { DisguiseType.ZOMBIE,
+			DisguiseType.BLAZE, DisguiseType.CAVE_SPIDER, DisguiseType.CREEPER,
+			DisguiseType.ENDER_DRAGON, DisguiseType.ENDERMAN,
+			DisguiseType.ENDERMITE, DisguiseType.GHAST, DisguiseType.GIANT,
+			DisguiseType.GUARDIAN, DisguiseType.PIG_ZOMBIE,
+			DisguiseType.SKELETON, DisguiseType.SLIME, DisguiseType.SPIDER,
+			DisguiseType.WITCH, DisguiseType.WITHER, DisguiseType.ZOMBIE };
+	public static final Set<DisguiseType> aggresiveMobs = new HashSet<DisguiseType>(
+			Arrays.asList(aggresiveList));
+
+	private static final DisguiseType passiveList[] = { DisguiseType.BAT,
+			DisguiseType.CHICKEN, DisguiseType.COW, DisguiseType.HORSE,
+			DisguiseType.IRON_GOLEM, DisguiseType.MAGMA_CUBE,
+			DisguiseType.MUSHROOM_COW, DisguiseType.OCELOT, DisguiseType.PIG,
+			DisguiseType.RABBIT, DisguiseType.SHEEP, DisguiseType.SILVERFISH,
+			DisguiseType.SNOWMAN, DisguiseType.SQUID, };
+	public static final Set<DisguiseType> passiveMobs = new HashSet<DisguiseType>(
+			Arrays.asList(passiveList));
+
+	private static final DisguiseType otherList[] = { DisguiseType.PLAYER,
+			DisguiseType.VILLAGER, DisguiseType.WOLF };
+	public static final Set<DisguiseType> otherDisguiseTypes = new HashSet<DisguiseType>(
+			Arrays.asList(otherList));
+
+	public static boolean isAggresiveDisguise(Entity entity) {
+		Disguise d = getDisguise(entity);
+		if (aggresiveMobs.contains(d.getType()))
 			return true;
 		else
 			return false;
 	}
 
-	public static boolean isPlayerDisguise(Player player) {
-		Disguise d = getDisguise(player);
+	public static boolean isPlayerDisguise(Entity entity) {
+		Disguise d = getDisguise(entity);
 		if (d.getType().equals(DisguiseType.PLAYER))
 			return true;
 		else

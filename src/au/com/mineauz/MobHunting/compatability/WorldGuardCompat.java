@@ -102,12 +102,7 @@ public class WorldGuardCompat implements Listener {
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
-					MobHunting.instance.isWorldGuardLoaded = true;
-
 				}
-			else
-				MobHunting
-						.debug("WORLDGUARD IS NOT LOADED!!!!!!!!!!!!!!!!!!!!!");
 		}
 	}
 
