@@ -19,7 +19,7 @@ public class TopCommand implements ICommand {
 
 	@Override
 	public String getName() {
-		return "top"; //$NON-NLS-1$
+		return "top";
 	}
 
 	@Override
@@ -34,14 +34,14 @@ public class TopCommand implements ICommand {
 
 	@Override
 	public String[] getUsageString(String label, CommandSender sender) {
-		return new String[] { label
-				+ ChatColor.GOLD
-				+ " <type> (day|week|month|year|alltime)" + ChatColor.GREEN + " [count]" }; //$NON-NLS-1$ //$NON-NLS-2$
+		return new String[] { label + ChatColor.GOLD
+				+ " <type> (day|week|month|year|alltime)" + ChatColor.GREEN
+				+ " [count]" };
 	}
 
 	@Override
 	public String getDescription() {
-		return Messages.getString("mobhunting.commands.top.description"); //$NON-NLS-1$
+		return Messages.getString("mobhunting.commands.top.description");
 	}
 
 	@Override
@@ -62,9 +62,9 @@ public class TopCommand implements ICommand {
 		StatType selectedType = StatType.parseStat(args[0]);
 		if (selectedType == null) {
 			sender.sendMessage(ChatColor.RED
-					+ Messages
-							.getString(
-									"mobhunting.commands.top.unknown-stat", "stat", ChatColor.YELLOW + args[0] + ChatColor.RED)); //$NON-NLS-1$ //$NON-NLS-2$
+					+ Messages.getString(
+							"mobhunting.commands.top.unknown-stat", "stat",
+							ChatColor.YELLOW + args[0] + ChatColor.RED));
 			return true;
 		}
 
@@ -72,9 +72,9 @@ public class TopCommand implements ICommand {
 		TimePeriod selectedPeriod = TimePeriod.parsePeriod(args[1]);
 		if (selectedPeriod == null) {
 			sender.sendMessage(ChatColor.RED
-					+ Messages
-							.getString(
-									"mobhunting.commands.top.unknown-period", "period", ChatColor.YELLOW + args[1] + ChatColor.RED)); //$NON-NLS-1$ //$NON-NLS-2$
+					+ Messages.getString(
+							"mobhunting.commands.top.unknown-period", "period",
+							ChatColor.YELLOW + args[1] + ChatColor.RED));
 			return true;
 		}
 

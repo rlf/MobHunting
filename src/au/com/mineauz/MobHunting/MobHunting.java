@@ -610,9 +610,10 @@ public class MobHunting extends JavaPlugin implements Listener {
 	}
 
 	public static void learn(Player player, String text, Object... args) {
-		if (LearnCommand.isLearning(player))
-			player.sendMessage(ChatColor.AQUA + "[MobHunting] "
-					+ String.format(text, args));
+		if (player != null)
+			if (LearnCommand.isLearning(player))
+				player.sendMessage(ChatColor.AQUA + "[MobHunting] "
+						+ String.format(text, args));
 	}
 
 	@EventHandler
@@ -704,7 +705,6 @@ public class MobHunting extends JavaPlugin implements Listener {
 			return;
 		Entity damager = event.getDamager();
 		Entity damaged = event.getEntity();
-		debug("damager=%s, damaged=%s", damager.getName(), damaged.getName());
 		if (CompatibilityManager.isPluginLoaded(WorldGuardCompat.class)) {
 			if ((damager instanceof Player)
 					|| (MyPetCompat.isMyPetSupported() && damager instanceof MyPetEntity)) {
@@ -787,33 +787,63 @@ public class MobHunting extends JavaPlugin implements Listener {
 
 			info.attackerPosition = cause.getLocation().clone();
 
-			debug("cause=%s", cause);
 			if (!info.playerUndercover)
 				if (DisguisesHelper.isDisguised(cause)) {
 					if (DisguisesHelper.isDisguisedAsAgresiveMob(cause)) {
-						debug("[MobHunting] The killer was diguised as an agressive mob");
+						debug("[MobHunting] %s was under cover - diguised as an agressive mob",
+								cause.getName());
 						info.playerUndercover = true;
 					} else
-						debug("[MobHunting] The killer was diguised as an passive mob");
-					if (cause instanceof Player)
-						damager.sendMessage(ChatColor.GREEN + cause.getName()
-								+ " disguise was blown!");
-					DisguisesHelper.undisguiseEntity(cause);
+						debug("[MobHunting] %s was under cover - diguised as an passive mob",
+								cause.getName());
+					if (mConfig.removeDisguiseWhenAttacking) {
+						DisguisesHelper.undisguiseEntity(cause);
+						if (cause instanceof Player)
+							cause.sendMessage(ChatColor.GREEN
+									+ ""
+									+ ChatColor.ITALIC
+									+ Messages.getString(
+											"bonus.undercover.message",
+											"cause", cause.getName()));
+						if (damaged instanceof Player)
+							damaged.sendMessage(ChatColor.GREEN
+									+ ""
+									+ ChatColor.ITALIC
+									+ Messages.getString(
+											"bonus.undercover.message",
+											"cause", cause.getName()));
+					}
 				} else
-					debug("[MobHunting] The killer was NOT diguised");
+					debug("[MobHunting] %s was NOT diguised", cause.getName());
 
 			if (!info.mobCoverBlown)
-				if (DisguisesHelper.isDisguised(event.getEntity())) {
+				if (DisguisesHelper.isDisguised(damaged)) {
 					if (DisguisesHelper.isDisguisedAsAgresiveMob(damaged)) {
-						debug("[MobHunting] The killed was diguised as an agressive mob");
+						debug("[MobHunting] %s Cover blown, diguised as an agressive mob",
+								damaged.getName());
 						info.mobCoverBlown = true;
 					} else
-						debug("[MobHunting] The killed was diguised as an passive mob");
-					if (damaged instanceof Player)
-						damaged.sendMessage(ChatColor.GREEN + damaged.getName()
-								+ " disguise was blown!");
+						debug("[MobHunting] %s Cover Blown, diguised as an passive mob",
+								damaged.getName());
+					if (mConfig.removeDisguiseWhenAttacked) {
+						DisguisesHelper.undisguiseEntity(damaged);
+						if (damaged instanceof Player)
+							damaged.sendMessage(ChatColor.GREEN
+									+ ""
+									+ ChatColor.ITALIC
+									+ Messages.getString(
+											"bonus.coverblown.message",
+											"damaged", damaged.getName()));
+						if (cause instanceof Player)
+							cause.sendMessage(ChatColor.GREEN
+									+ ""
+									+ ChatColor.ITALIC
+									+ Messages.getString(
+											"bonus.coverblown.message",
+											"damaged", damaged.getName()));
+					}
 				} else
-					debug("[MobHunting] The killed was NOT diguised");
+					debug("[MobHunting] %s was NOT diguised", damaged.getName());
 
 			mDamageHistory.put((LivingEntity) damaged, info);
 		}
@@ -1073,9 +1103,6 @@ public class MobHunting extends JavaPlugin implements Listener {
 			info.attacker = killer;
 			info.attackerPosition = killer.getLocation();
 			info.usedWeapon = true;
-			// info.playerUndercover =
-			// DisguisesHelper.isDisguisedAsAgresiveMob(killer);
-			// info.mobCoverBlown=DisguisesHelper.isDisguised(killed);
 		}
 
 		if ((System.currentTimeMillis() - info.lastAttackTime) > mConfig.killTimeout * 1000) {
@@ -1086,6 +1113,65 @@ public class MobHunting extends JavaPlugin implements Listener {
 
 		if (info.weapon == null)
 			info.weapon = new ItemStack(Material.AIR);
+
+		if (!info.playerUndercover)
+			if (DisguisesHelper.isDisguised(killer)) {
+				if (DisguisesHelper.isDisguisedAsAgresiveMob(killer)) {
+					debug("[MobHunting] %s was under cover - diguised as an agressive mob",
+							killer.getName());
+					info.playerUndercover = true;
+				} else
+					debug("[MobHunting] %s was under cover - diguised as an passive mob",
+							killer.getName());
+				if (mConfig.removeDisguiseWhenAttacking) {
+					DisguisesHelper.undisguiseEntity(killer);
+					if (killer instanceof Player)
+						killer.sendMessage(ChatColor.GREEN
+								+ ""
+								+ ChatColor.ITALIC
+								+ Messages.getString(
+										"bonus.undercover.message", "cause",
+										killer.getName()));
+					if (killed instanceof Player)
+						killed.sendMessage(ChatColor.GREEN
+								+ ""
+								+ ChatColor.ITALIC
+								+ Messages.getString(
+										"bonus.undercover.message", "cause",
+										killer.getName()));
+				}
+
+			} else
+				debug("[MobHunting] %s was NOT diguised", killer.getName());
+
+		if (!info.mobCoverBlown)
+			if (DisguisesHelper.isDisguised(killed)) {
+				if (DisguisesHelper.isDisguisedAsAgresiveMob(killed)) {
+					debug("[MobHunting] %s Cover blown, diguised as an agressive mob",
+							killed.getName());
+					info.mobCoverBlown = true;
+				} else
+					debug("[MobHunting] %s Cover Blown, diguised as an passive mob",
+							killed.getName());
+				if (mConfig.removeDisguiseWhenAttacked) {
+					DisguisesHelper.undisguiseEntity(killed);
+					if (killed instanceof Player)
+						killed.sendMessage(ChatColor.GREEN
+								+ ""
+								+ ChatColor.ITALIC
+								+ Messages.getString(
+										"bonus.coverblown.message", "damaged",
+										killed.getName()));
+					if (killer instanceof Player)
+						killer.sendMessage(ChatColor.GREEN
+								+ ""
+								+ ChatColor.ITALIC
+								+ Messages.getString(
+										"bonus.coverblown.message", "damaged",
+										killed.getName()));
+				}
+			} else
+				debug("[MobHunting] %s was NOT diguised", killed.getName());
 
 		HuntData data = getHuntData(killer);
 
@@ -1147,17 +1233,12 @@ public class MobHunting extends JavaPlugin implements Listener {
 		// Apply the modifiers
 		ArrayList<String> modifiers = new ArrayList<String>();
 		for (IModifier mod : mModifiers) {
-			debug("mod=%s", mod.getName());
 			if (mod.doesApply(killed, killer, data, info, lastDamageCause)) {
-				debug("info.playerUndercover=%s", info.playerUndercover);
 				double amt = mod.getMultiplier(killed, killer, data, info,
 						lastDamageCause);
-
 				if (amt != 1.0) {
 					modifiers.add(mod.getName());
 					multiplier *= amt;
-					debug("Number of modifiers=%s multiplier=%s",
-							modifiers.size(), multiplier);
 				}
 			}
 		}
@@ -1176,21 +1257,6 @@ public class MobHunting extends JavaPlugin implements Listener {
 
 		cash *= multiplier;
 
-		/**
-		 * if (DisguisesHelper.isDisguised(killer)) { if
-		 * (DisguisesHelper.isDisguisedAsAgresiveMob(killer)) { if (killer
-		 * instanceof Player) {
-		 * debug("[MobHunting] The killer was diguised as an agressive mob"); }
-		 * } else
-		 * debug("[MobHunting] The killer was diguised as an passive mob"); }
-		 * else debug("[MobHunting] The killer was NOT diguised");
-		 * 
-		 * if (DisguisesHelper.isDisguised(killed)) { if
-		 * (DisguisesHelper.isDisguisedAsAgresiveMob(killed))
-		 * debug("[MobHunting] The killed was diguised as an agressive mob");
-		 * else debug("[MobHunting] The killed was diguised as an passive mob");
-		 * } else debug("[MobHunting] The killed was NOT diguised");
-		 **/
 		if ((cash >= 0.01) || (cash <= -0.01)) {
 			MobHuntKillEvent event2 = new MobHuntKillEvent(data, info, killed,
 					killer);
@@ -1332,27 +1398,6 @@ public class MobHunting extends JavaPlugin implements Listener {
 				}
 			}
 		}
-	}
-
-	private double getRankMultiplier(Player killer) {
-		Set<String> ranks = mConfig.rankMultiplier.keySet();
-		for (String rank : ranks) {
-			if (killer.hasPermission(rank)) {
-				String mul = mConfig.rankMultiplier.get(rank);
-				if (mul != null) {
-
-					debug("Reward is multiplied by rankMultiplier permissionNode=%s multiplier=%s",
-							rank, mul);
-					return Double.valueOf(mul);
-				} else {
-					getLogger()
-							.severe(Messages
-									.getString("[MobHunting] Missing Rank Multiplier in config.yml:"
-											+ mul));
-				}
-			}
-		}
-		return 1;
 	}
 
 	@SuppressWarnings("unused")

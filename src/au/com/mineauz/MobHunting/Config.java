@@ -57,7 +57,10 @@ public class Config extends AutoConfig {
 
 		setCategoryComment(
 				"mobs",
-				"Here is where you set the base prize in $ for killing a mob of each type"
+				"########################################################################"
+						+ "\nRewards for killing mobs."
+						+ "\n########################################################################"
+						+ "\nHere is where you set the base prize in $ for killing a mob of each type"
 						+ "\nYou can either set a decimal number ex 1.23 or a range 1.23:2.23"
 						+ "\nFor each kill you can run a console command to give the player a reward."
 						+ "\nYou can use the following variables {player},{world},"
@@ -75,26 +78,42 @@ public class Config extends AutoConfig {
 						+ "\n{mob-cmd-run-frequency-base} times in average. If mob-cmd-run-frequency=0 it"
 						+ "\nwill never run. If f.ex. mob-cmd-run-frequency=50 and "
 						+ "\nmob-cmd-run-frequency-base=100 it will run run every second time.");
-		setCategoryComment("boss",
-				"Here is where you set the base prize in $ for killing the bosses");
+		setCategoryComment(
+				"boss",
+				"########################################################################"
+						+ "\nRewards for killing bosses"
+						+ "\n########################################################################"
+						+ "\nHere is where you set the base prize in $ for killing the bosses");
 		setCategoryComment(
 				"passive",
-				"Here is where you set the base prize in $ for killing passive/friendly mobs."
+				"########################################################################"
+						+ "\nRewards for killing passive mobs"
+						+ "\n########################################################################"
+						+ "\nHere is where you set the base prize in $ for killing passive/friendly mobs."
 						+ "\nBy default the player does not get a reward for killing friendly mobs."
 						+ "\nIf you make the number negative, the reward will be a fine for killing a passive animal.");
 		setCategoryComment(
 				"bonus",
-				"These are bonus multipliers that can modify the base prize. "
+				"########################################################################"
+						+ "\n Bonus multipliers"
+						+ "\n########################################################################"
+						+ "\nThese are bonus multipliers that can modify the base prize. "
 						+ "\nREMEMBER: These are not in $ but they are a multiplier. "
 						+ "\nSetting to 1 will disable them.");
 		setCategoryComment(
 				"penalty",
-				"These are penalty multipliers that can modify the base prize. "
+				"########################################################################"
+						+ "\nPenalty multipliers"
+						+ "\n########################################################################"
+						+ "\nThese are penalty multipliers that can modify the base prize. "
 						+ "\nREMEMBER: These are not in $ but they are a multiplier. "
 						+ "\nSetting to 1 will disable them.");
 		setCategoryComment(
 				"special",
-				"Here is where you set the prize in $ for achieving a special kill. "
+				"########################################################################"
+						+ "\nSpecial / Achievements rewards"
+						+ "\n########################################################################"
+						+ "\nHere is where you set the prize in $ for achieving a special kill. "
 						+ "\nFor each achievment you can run a console command to give the player a reward. "
 						+ "\nYou can use the following variables {player},{world}."
 						+ "\nAn example could be to give the player permission to fly "
@@ -102,14 +121,24 @@ public class Config extends AutoConfig {
 						+ "\nYou can also specify the message send to the player."
 						+ "\nYou can run many console commands on each line, each command"
 						+ "\nmust be separated by |");
-		setCategoryComment("assists",
-				"They players can get an extra reward if they help each other killing mobs.");
+		setCategoryComment(
+				"assists",
+				"########################################################################"
+						+ "\nRewards for assisting killings"
+						+ "\n########################################################################"
+						+ "\nThey players can get an extra reward if they help each other killing mobs.");
 		setCategoryComment(
 				"killstreak",
-				"Set the multiplier when the player kills 1,2,3,4 mob in a row without getting damage.");
+				"########################################################################"
+						+ "\nReward for kills in a row"
+						+ "\n########################################################################"
+						+ "\nSet the multiplier when the player kills 1,2,3,4 mob in a row without getting damage.");
 		setCategoryComment(
 				"multiplier",
-				"You can add multipliers for players with different ranks/groups. To do this"
+				"########################################################################"
+						+ "\nRank multipliers"
+						+ "\n########################################################################"
+						+ "\nYou can add multipliers for players with different ranks/groups. To do this"
 						+ "\nyou must set give the user/group permissions with a format like this:"
 						+ "\nmobhunting.multiplier.guest"
 						+ "\nmobhunting.multiplier.guardian"
@@ -122,7 +151,10 @@ public class Config extends AutoConfig {
 
 		setCategoryComment(
 				"pvp",
-				"Pvp configuration. Set pvp-allowed = true if you want give the players a reward when they kill eachother."
+				"########################################################################"
+						+ "\nPvp rewards"
+						+ "\n########################################################################"
+						+ "\nPvp configuration. Set pvp-allowed = true if you want give the players a reward when they kill eachother."
 						+ "\nYou can alsp run a console command when this happens to give the player a reward or punish him."
 						+ "\nYou can you the following variables {player},{world},{killed_player}."
 						+ "\nAn example could be to give the player permission to fly "
@@ -132,7 +164,10 @@ public class Config extends AutoConfig {
 						+ "\nmust be separated by |");
 		setCategoryComment(
 				"disguises",
-				"Here is where can define the actions when a player is under disguise (attacker)"
+				"########################################################################"
+						+ "\nDisguises rewards"
+						+ "\n########################################################################"
+						+ "\nHere is where can define the actions when a player is under disguise (attacker)"
 						+ "\n or when the attacked (victim)");
 
 		setCategoryComment(
@@ -778,18 +813,18 @@ public class Config extends AutoConfig {
 
 	@ConfigField(name = "remove-disguise-when-attacking", category = "disguises", comment = "Set pvpAllowed=false to disable rewards on killing other players.")
 	public boolean removeDisguiseWhenAttacking = true;
-	
+
 	@ConfigField(name = "remove-disguise-when-attacked", category = "disguises", comment = "Set pvpAllowed=false to disable rewards on killing other players.")
 	public boolean removeDisguiseWhenAttacked = true;
-	
-	@ConfigField(name = "undercover-multiplier", category = "disguises", comment = "Bonus multiplier for killing while disgused." 
-			+"\nCan be both positive an negative = reward or penalty"
-			+"\nand over and under 1 = raise or lower the reward. ")
-	public double undercoverMultiplier = 1.05;
-	@ConfigField(name = "cover-blown-multiplier", category = "disguises", comment = "Bonus multiplier for killing a disgused player." 
-			+"\nCan be both positive an negative = reward or penalty"
-			+"\nand over and under 1 = raise or lower the reward. ")
-	public double coverBlownMultiplier = 1.05;
+
+	@ConfigField(name = "undercover-multiplier", category = "disguises", comment = "Bonus multiplier for killing while disgused."
+			+ "\nCan be both positive an negative = reward or penalty"
+			+ "\nand over and under 1 = raise or lower the reward. ")
+	public double undercoverMultiplier = 0.95;
+	@ConfigField(name = "cover-blown-multiplier", category = "disguises", comment = "Bonus multiplier for killing a disgused player."
+			+ "\nCan be both positive an negative = reward or penalty"
+			+ "\nand over and under 1 = raise or lower the reward. ")
+	public double coverBlownMultiplier = 1.2;
 
 	// #####################################################################################
 	// Plugin integration
@@ -869,11 +904,10 @@ public class Config extends AutoConfig {
 			+ "\nSet rounding_reward=5 if you want multipla of 5 IE. 10,15,20,25..."
 			+ "\nSet rounding_reward=2 if you want multipla of 2 IE. 10,12,14,16...")
 	public double rewardRounding = 0.01;
-	@ConfigField(name = "NEWPLAYER_LEARNING_MODE", category = "general", comment = "When a new playerjoins the server he will by default start"
+	@ConfigField(name = "newplayer_learning_mode", category = "general", comment = "When a new playerjoins the server he will by default start"
 			+ "\nin 'LEARNING MODE' and get extra information about when he get rewards and not,"
-			+ "\nwhen killing Mobs. The player can disable this InGame by using the command '/mh learn'"
-			+ "\nNotice that this is Case sentive!!!")
-	public boolean learningMode = false;
+			+ "\nwhen killing Mobs. The player can disable this InGame by using the command '/mh learn'")
+	public boolean learningMode = true;
 
 	@Override
 	protected void onPostLoad() throws InvalidConfigurationException {

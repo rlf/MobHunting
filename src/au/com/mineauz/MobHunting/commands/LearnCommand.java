@@ -127,10 +127,11 @@ public class LearnCommand implements ICommand, Listener {
 	}
 
 	public static boolean isLearning(Player player) {
-		if (playerStore.containsKey(player))
+		if (playerStore.containsKey(player.getUniqueId()))
 			return playerStore.get(player.getUniqueId()).getLearningMode();
-		else
-			return false;
+		else { 
+			MobHunting.debug("ERROR in isLearning - Player %s not in playerStore");
+			return false;}
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

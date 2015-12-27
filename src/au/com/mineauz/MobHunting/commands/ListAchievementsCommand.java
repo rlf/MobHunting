@@ -181,7 +181,7 @@ public class ListAchievementsCommand implements ICommand {
 						}
 
 						if (inProgress) {
-							lines.add(""); //$NON-NLS-1$
+							lines.add(""); 
 							lines.add(ChatColor.YELLOW
 									+ Messages
 											.getString("mobhunting.commands.listachievements.progress"));

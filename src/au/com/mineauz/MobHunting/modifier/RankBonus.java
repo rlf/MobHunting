@@ -1,7 +1,7 @@
 package au.com.mineauz.MobHunting.modifier;
 
-import java.util.Set;
-
+import java.util.Iterator;
+import java.util.Map.Entry;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -23,12 +23,14 @@ public class RankBonus implements IModifier {
 	public double getMultiplier(LivingEntity deadEntity, Player killer,
 			HuntData data, DamageInformation extraInfo,
 			EntityDamageByEntityEvent lastDamageCause) {
-		Set<String> ranks = MobHunting.config().rankMultiplier.keySet();
-		for (String rank : ranks) {
-			if (killer.hasPermission(rank)) {
-					return Double.valueOf(MobHunting.config().rankMultiplier.get(rank));
-					}
+		Iterator<Entry<String, String>> ranks = MobHunting.config().rankMultiplier
+				.entrySet().iterator();
+		while (ranks.hasNext()) {
+			Entry<String, String> rank = ranks.next();
+			if (killer.hasPermission(rank.getKey())) {
+				return Double.valueOf(rank.getValue());
 			}
+		}
 		return 1;
 	}
 
@@ -36,25 +38,21 @@ public class RankBonus implements IModifier {
 	public boolean doesApply(LivingEntity deadEntity, Player killer,
 			HuntData data, DamageInformation extraInfo,
 			EntityDamageByEntityEvent lastDamageCause) {
-		Set<String> ranks = MobHunting.config().rankMultiplier.keySet();
-		for (String rank : ranks) {
-			if (killer.hasPermission(rank)) {
-				String mul = MobHunting.config().rankMultiplier.get(rank);
-				if (mul != null) {
-					MobHunting
-							.debug("Reward is multiplied by rankMultiplier permissionNode=%s multiplier=%s",
-									rank, mul);
-					return true;
-				} else {
-					MobHunting.instance
-							.getServer()
-							.getLogger()
-							.severe(Messages
-									.getString("[MobHunting] Missing Rank Multiplier in config.yml:"
-											+ mul));
-				}
+		Iterator<Entry<String, String>> ranks = MobHunting.config().rankMultiplier
+				.entrySet().iterator();
+		while (ranks.hasNext()) {
+			Entry<String, String> rank = ranks.next();
+			if (!rank.getKey().equalsIgnoreCase("mobhunting")
+					&& !rank.getKey().equalsIgnoreCase("mobhunting.multiplier"))
+				MobHunting.debug("RankMultiplier Key=%s Value=%s",
+						rank.getKey(), rank.getValue());
+			if (killer.hasPermission(rank.getKey())) {
+				MobHunting.debug("Found - RankMultiplier Key=%s Value=%s",
+						rank.getKey(), rank.getValue());
+				return true;
 			}
 		}
+		MobHunting.debug("%s has no Rank Multiplier", killer.getName());
 		return false;
 	}
 }

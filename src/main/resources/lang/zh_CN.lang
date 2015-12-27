@@ -165,6 +165,12 @@ bonus.prosniper.name=Pro Sniper
 bonus.returntosender.name=Return To Sender!
 bonus.sneaky.name=Sneaky!
 bonus.sniper.name=Sniper
+bonus.critical.name=Critical!
+bonus.coverblown.name=Cover Blown!
+bonus.coverblown.message=${damaged} was disguised!
+bonus.undercover.name=Under cover!
+bonus.undercover.message=${cause} disguise was blown!
+bonus.rank.name=Rank Bonus!
 
 penalty.flying.name=飞行惩罚
 penalty.grinding.name=拖延惩罚
