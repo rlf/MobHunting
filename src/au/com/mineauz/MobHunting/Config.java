@@ -183,6 +183,12 @@ public class Config extends AutoConfig {
 						+ "\n########################################################################");
 
 		setCategoryComment(
+				"updates",
+				"########################################################################"
+						+ "\nUpdate settings"
+						+ "\n########################################################################");
+
+		setCategoryComment(
 				"general",
 				"########################################################################"
 						+ "\nGeneral Setting."
@@ -896,12 +902,12 @@ public class Config extends AutoConfig {
 	@ConfigField(name = "kill-debug", category = "general", comment = "If kills are not being registered in mob hunting. Enable this to see why they arent")
 	public boolean killDebug = false;
 
-	@ConfigField(name = "update-check", category = "general", comment = "Check if there is a new version of the plugin available.")
+	@ConfigField(name = "update-check", category = "updates", comment = "Check if there is a new version of the plugin available.")
 	public boolean updateCheck = true;
-	@ConfigField(name = "check_every", category = "general", comment = "Set the number of seconds between each check. Recommended setting is"
+	@ConfigField(name = "check_every", category = "updates", comment = "Set the number of seconds between each check. Recommended setting is"
 			+ "\ncheck_every: 3600 ~ to check every hour.")
 	public int checkEvery = 3600;
-	@ConfigField(name = "autoupdate", category = "general", comment = "Set 'autoupdate: true' if you want new updates downloaded and installed."
+	@ConfigField(name = "autoupdate", category = "updates", comment = "Set 'autoupdate: true' if you want new updates downloaded and installed."
 			+ "\nYou will still have to reboot the server manually.")
 	public boolean autoupdate = false;
 
