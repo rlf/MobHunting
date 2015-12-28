@@ -24,7 +24,6 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.*;
@@ -54,10 +53,6 @@ import org.mcstats.Metrics.Graph;
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.flags.DefaultFlag;
 import com.sk89q.worldguard.protection.managers.RegionManager;
-//import com.sk89q.worldguard.LocalPlayer;
-//import com.sk89q.worldguard.bukkit.RegionQuery;
-//import com.sk89q.worldguard.protection.ApplicableRegionSet;
-//import com.sk89q.worldguard.protection.flags.StateFlag.State;
 
 import de.Keyle.MyPet.api.entity.MyPetEntity;
 import au.com.mineauz.MobHunting.achievements.*;
@@ -99,8 +94,8 @@ import au.com.mineauz.MobHunting.storage.DataStoreException;
 import au.com.mineauz.MobHunting.storage.DataStoreManager;
 import au.com.mineauz.MobHunting.storage.MySQLDataStore;
 import au.com.mineauz.MobHunting.storage.SQLiteDataStore;
+import au.com.mineauz.MobHunting.update.UpdateHelper;
 import au.com.mineauz.MobHunting.util.Misc;
-import au.com.mineauz.MobHunting.util.BukkitUpdate;
 
 public class MobHunting extends JavaPlugin implements Listener {
 
@@ -108,7 +103,6 @@ public class MobHunting extends JavaPlugin implements Listener {
 	public final static String pluginName = "mobhunting";
 	public final static String tablePrefix = "mh_";
 	public String pluginVersion = "";
-	private static String currentJarFile = "";
 
 	private Economy mEconomy;
 	public static MobHunting instance;
@@ -148,7 +142,7 @@ public class MobHunting extends JavaPlugin implements Listener {
 		instance = this;
 
 		pluginVersion = instance.getDescription().getVersion();
-		currentJarFile = instance.getFile().getName();
+		UpdateHelper.setCurrentJarFile(instance.getFile().getName());
 
 		Messages.exportDefaultLanguages();
 
@@ -264,9 +258,8 @@ public class MobHunting extends JavaPlugin implements Listener {
 			debug("Failed to start Metrics!");
 		}
 
-		pluginUpdateCheck(getServer().getConsoleSender(),
+		UpdateHelper.hourlyUpdateCheck(getServer().getConsoleSender(),
 				instance.mConfig.updateCheck, false);
-
 	}
 
 	@Override
@@ -1466,10 +1459,15 @@ public class MobHunting extends JavaPlugin implements Listener {
 
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	private void onPlayerJoin(PlayerJoinEvent event) {
-		Player player = event.getPlayer();
+		final Player player = event.getPlayer();
 		setHuntEnabled(player, true);
 		if (player.hasPermission("mobhunting.update")) {
-			pluginUpdateCheck(player, true, true);
+			new BukkitRunnable() {
+		        @Override
+		        public void run () {
+		        	UpdateHelper.pluginUpdateCheck(player, true, true);
+		        }
+		    }.runTaskLater(MobHunting.instance, 20L);
 		}
 	}
 
@@ -1543,139 +1541,6 @@ public class MobHunting extends JavaPlugin implements Listener {
 
 	public LeaderboardManager getLeaderboards() {
 		return mLeaderboards;
-	}
-
-	// ***************************************************************************
-	// UPDATECHECK - Check if there is a new version available at
-	// https://api.curseforge.com/servermods/files?projectIds=63718
-	// ***************************************************************************
-
-	// Update object
-	private BukkitUpdate bukkitUpdate = null;
-	private UpdateStatus updateAvailable = UpdateStatus.UNKNOWN;
-
-	public enum UpdateStatus {
-		UNKNOWN, NO_RESPONSE, NOT_AVAILABLE, AVAILABLE, RESTART_NEEDED
-	};
-
-	public BukkitUpdate getBukkitUpdate() {
-		return bukkitUpdate;
-	}
-
-	public UpdateStatus getUpdateAvailable() {
-		return updateAvailable;
-	}
-
-	public void setUpdateAvailable(UpdateStatus b) {
-		updateAvailable = b;
-	}
-
-	public String getCurrentJarFile() {
-		return currentJarFile;
-	}
-
-	public void pluginUpdateCheck(final CommandSender sender,
-			boolean updateCheck, final boolean silent) {
-		if (updateCheck) {
-			if (!silent) {
-				getServer()
-						.getConsoleSender()
-						.sendMessage(
-								ChatColor.GOLD
-										+ Messages
-												.getString("mobhunting.commands.update.check"));
-			}
-			if (updateAvailable != UpdateStatus.RESTART_NEEDED) {
-				// Check for updates asynchronously in background
-				getServer().getScheduler().runTaskAsynchronously(this,
-						new Runnable() {
-							@Override
-							public void run() {
-								bukkitUpdate = new BukkitUpdate(63718); // MobHunting
-								if (!bukkitUpdate.isSuccess()) {
-									bukkitUpdate = null;
-								}
-							}
-						});
-				// Check if bukkitUpdate is found in background
-				new BukkitRunnable() {
-					int count = 0;
-
-					@Override
-					public void run() {
-						if (count++ > 10) {
-							sender.sendMessage(ChatColor.RED
-									+ "[MobHunting] No updates found. (No response from server after 10s)");
-							this.cancel();
-						} else {
-							// Wait for the response
-							if (bukkitUpdate != null) {
-								if (bukkitUpdate.isSuccess()) {
-									updateAvailable = isUpdateNewerVersion();
-
-									if (updateAvailable == UpdateStatus.AVAILABLE) {
-										sender.sendMessage(ChatColor.GREEN
-												+ Messages
-														.getString("mobhunting.commands.update.version-found"));
-										sender.sendMessage(ChatColor.GREEN
-												+ Messages
-														.getString("mobhunting.commands.update.help"));
-									} else {
-										if (!silent) {
-											sender.sendMessage(ChatColor.GOLD
-													+ Messages
-															.getString("mobhunting.commands.update.no-update"));
-										}
-									}
-
-								}
-								this.cancel();
-							}
-						}
-					}
-				}.runTaskTimer(instance, 0L, 20L); // Check status every second
-			}
-		}
-	}
-
-	public UpdateStatus isUpdateNewerVersion() {
-		// Check to see if the latest file is newer that this one
-		String[] split = instance.getBukkitUpdate().getVersionName()
-				.split(" V");
-		// Only do this if the format is what we expect
-		if (split.length == 2) {
-			// Need to escape the period in the regex expression
-			String[] updateVer = split[1].split("\\.");
-			// CHeck the version #'s
-			String[] pluginVer = pluginVersion.split("\\.");
-			// Run through major, minor, sub
-			for (int i = 0; i < Math.max(updateVer.length, pluginVer.length); i++) {
-				try {
-					int updateCheck = 0;
-					if (i < updateVer.length) {
-						updateCheck = Integer.valueOf(updateVer[i]);
-					}
-					int pluginCheck = 0;
-					if (i < pluginVer.length) {
-						pluginCheck = Integer.valueOf(pluginVer[i]);
-					}
-					if (updateCheck > pluginCheck) {
-						return UpdateStatus.AVAILABLE;
-					} else if (updateCheck < pluginCheck)
-						return UpdateStatus.NOT_AVAILABLE;
-				} catch (Exception e) {
-					getLogger().warning(
-							"Could not determine update's version # ");
-					getLogger().warning("Plugin version: " + pluginVersion);
-					getLogger().warning(
-							"Update version: "
-									+ instance.getBukkitUpdate()
-											.getVersionName());
-					return UpdateStatus.UNKNOWN;
-				}
-			}
-		}
-		return UpdateStatus.NOT_AVAILABLE;
 	}
 
 	// ************************************************************************************

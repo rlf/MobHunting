@@ -27,9 +27,11 @@ public class RankBonus implements IModifier {
 				.entrySet().iterator();
 		while (ranks.hasNext()) {
 			Entry<String, String> rank = ranks.next();
-			if (killer.hasPermission(rank.getKey())) {
-				return Double.valueOf(rank.getValue());
-			}
+			if (!rank.getKey().equalsIgnoreCase("mobhunting")
+					&& !rank.getKey().equalsIgnoreCase("mobhunting.multiplier"))
+				if (killer.hasPermission(rank.getKey())) {
+					return Double.valueOf(rank.getValue());
+				}
 		}
 		return 1;
 	}

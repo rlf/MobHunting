@@ -895,8 +895,16 @@ public class Config extends AutoConfig {
 	public int killTimeout = 4;
 	@ConfigField(name = "kill-debug", category = "general", comment = "If kills are not being registered in mob hunting. Enable this to see why they arent")
 	public boolean killDebug = false;
+
 	@ConfigField(name = "update-check", category = "general", comment = "Check if there is a new version of the plugin available.")
 	public boolean updateCheck = true;
+	@ConfigField(name = "check_every", category = "general", comment = "Set the number of seconds between each check. Recommended setting is"
+			+ "\ncheck_every: 3600 ~ to check every hour.")
+	public int checkEvery = 3600;
+	@ConfigField(name = "autoupdate", category = "general", comment = "Set 'autoupdate: true' if you want new updates downloaded and installed."
+			+ "\nYou will still have to reboot the server manually.")
+	public boolean autoupdate = false;
+
 	@ConfigField(name = "reward_rounding", category = "general", comment = "Rounding of rewards when you uses a range or %. (ex creeperPrize=10:30) the reward."
 			+ "\nAll numbers except 0 can be used. "
 			+ "\nSet rounding_reward=1 if you want integers. IE. 10,11,12,13,14..."
