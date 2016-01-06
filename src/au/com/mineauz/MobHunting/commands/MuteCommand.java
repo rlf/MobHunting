@@ -12,44 +12,43 @@ import au.com.mineauz.MobHunting.MobHunting;
 import au.com.mineauz.MobHunting.storage.DataStoreManager;
 import au.com.mineauz.MobHunting.storage.PlayerData;
 
-public class LearnCommand implements ICommand, Listener {
+public class MuteCommand implements ICommand, Listener {
 
-	public LearnCommand() {
+	public MuteCommand() {
 		Bukkit.getPluginManager().registerEvents(this, MobHunting.instance);
 	}
 
 	// Used case
-	// /mh learn - args.length = 0 || arg[0]=""
+	// /mh mute - No args, args.length = 0 || arg[0]=""
 
 	@Override
 	public String getName() {
-		return "learn";
+		return "mute";
 	}
 
 	@Override
 	public String[] getAliases() {
-		return new String[] { "learning", "-l", "learnmode" };
+		return new String[] { "silent", "notify" };
 	}
 
 	@Override
 	public String getPermission() {
-		return "mobhunting.learn";
+		return "mobhunting.mute";
 	}
 
 	@Override
 	public String[] getUsageString(String label, CommandSender sender) {
 		return new String[] {
-				label + " learn" + ChatColor.GREEN
-						+ " - to enable/disable learningmode.",
+				label + " mute" + ChatColor.GREEN + " - to mute/unmute.",
 				label
-						+ " learn playername"
+						+ " mute playername"
 						+ ChatColor.GREEN
-						+ " - to enable/disable learningmode for a specific player." };
+						+ " - to mute/unmute a the notifications for a specific player." };
 	}
 
 	@Override
 	public String getDescription() {
-		return Messages.getString("mobhunting.commands.learn.description");
+		return Messages.getString("mobhunting.commands.mute.description");
 	}
 
 	@Override
@@ -72,19 +71,19 @@ public class LearnCommand implements ICommand, Listener {
 	public boolean onCommand(CommandSender sender, String label, String[] args) {
 
 		if (args.length == 0) {
-			togglePlayerLearningMode((Player) sender);
+			togglePlayerMuteMode((Player) sender);
 			return true;
 		} else if (args.length == 1) {
 			DataStoreManager ds = MobHunting.instance.getDataStore();
 			Player player = (Player) ds.getPlayerByName(args[0]);
 			if (player != null) {
-				if (sender.hasPermission("mobhunting.learn.other")
+				if (sender.hasPermission("mobhunting.mute.other")
 						|| sender instanceof ConsoleCommandSender) {
-					togglePlayerLearningMode(player);
+					togglePlayerMuteMode(player);
 				} else {
 					sender.sendMessage(ChatColor.RED
 							+ "You dont have permission " + ChatColor.AQUA
-							+ "'mobhunting.learn.other'");
+							+ "'mobhunting.mute.other'");
 				}
 				return true;
 			} else {
@@ -96,25 +95,25 @@ public class LearnCommand implements ICommand, Listener {
 		return false;
 	}
 
-	private void togglePlayerLearningMode(Player player) {
+	private void togglePlayerMuteMode(Player player) {
 		DataStoreManager ds = MobHunting.instance.getDataStore();
 		if (MobHunting.instance.playerData.containsKey(player.getUniqueId())) {
-			boolean mm = MobHunting.instance.playerData.get(
-					player.getUniqueId()).isMuted();
+			boolean lm = MobHunting.instance.playerData.get(
+					player.getUniqueId()).isLearningMode();
 			if (MobHunting.instance.playerData.get(player.getUniqueId())
-					.isLearningMode()) {
-				ds.savePlayerData(player, false, mm);
+					.isMuted()) {
+				ds.savePlayerData(player, lm, false);
 				MobHunting.instance.playerData.put(player.getUniqueId(),
-						new PlayerData(player, false, mm));
+						new PlayerData(player, lm, false));
 				player.sendMessage(Messages.getString(
-						"mobhunting.commands.learn.disabled", "player",
+						"mobhunting.commands.mute.unmuted", "player",
 						player.getName()));
 			} else {
-				ds.savePlayerData(player, true, mm);
+				ds.savePlayerData(player, lm, true);
 				MobHunting.instance.playerData.put(player.getUniqueId(),
-						new PlayerData(player, true, mm));
+						new PlayerData(player, lm, true));
 				player.sendMessage(Messages.getString(
-						"mobhunting.commands.learn.enabled", "player",
+						"mobhunting.commands.mute.muted", "player",
 						player.getName()));
 			}
 		}

@@ -103,7 +103,7 @@ public class MySQLDataStore extends DatabaseDataStore {
 		String lm = MobHunting.config().learningMode ? "1" : "0";
 		create.executeUpdate("CREATE TABLE IF NOT EXISTS mh_Players (UUID CHAR(40) PRIMARY KEY, NAME CHAR(20), PLAYER_ID INTEGER NOT NULL AUTO_INCREMENT, "
 				+ "KEY PLAYER_ID (PLAYER_ID), LEARNING_MODE INTEGER NOT NULL DEFAULT "
-				+ lm + " )");
+				+ lm + ", MUTE_MODE INTEGER NOT NULL DEFAULT 0)");
 		String dataString = "";
 		for (StatType type : StatType.values())
 			dataString += ", " + type.getDBColumn()
@@ -215,14 +215,13 @@ public class MySQLDataStore extends DatabaseDataStore {
 				.prepareStatement("SELECT UUID FROM mh_Players WHERE NAME=?;");
 		mUpdatePlayerName = connection
 				.prepareStatement("UPDATE mh_Players SET NAME=? WHERE UUID=?;");
-		mUpdatePlayerLearningMode = connection
-				.prepareStatement("UPDATE mh_Players SET LEARNING_MODE=? WHERE UUID=?;");
-		mGetPlayerLearningMode = connection
-				.prepareStatement("SELECT LEARNING_MODE FROM mh_Players WHERE UUID=?;");
+		mUpdatePlayerData = connection
+				.prepareStatement("UPDATE mh_Players SET LEARNING_MODE=?, MUTE_MODE=? WHERE UUID=?;");
 	}
 
 	@Override
 	protected void setupStatement_1(Connection connection) throws SQLException {
+		// TODO: Am I missing two values? ,1,0 ???
 		myAddPlayerStatement = connection
 				.prepareStatement("INSERT IGNORE INTO mh_Players(UUID,NAME) VALUES(?,?);");
 	}
@@ -860,6 +859,17 @@ public class MySQLDataStore extends DatabaseDataStore {
 			statement
 					.executeUpdate("alter table `mh_Players` add column `LEARNING_MODE` INTEGER NOT NULL DEFAULT "
 							+ lm);
+		}
+
+		try {
+			ResultSet rs = statement
+					.executeQuery("SELECT MUTE_MODE from mh_Players LIMIT 0");
+			rs.close();
+		} catch (SQLException e) {
+			System.out
+					.println("[MobHunting]*** Adding new Player mute mode to MobHunting Database ***");
+			statement
+					.executeUpdate("alter table `mh_Players` add column `MUTE_MODE` INTEGER NOT NULL DEFAULT 0");
 		}
 
 		System.out.println("[MobHunting]*** Updating database triggers ***");

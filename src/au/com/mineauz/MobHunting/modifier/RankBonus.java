@@ -46,13 +46,11 @@ public class RankBonus implements IModifier {
 			Entry<String, String> rank = ranks.next();
 			if (!rank.getKey().equalsIgnoreCase("mobhunting")
 					&& !rank.getKey().equalsIgnoreCase("mobhunting.multiplier"))
-				MobHunting.debug("RankMultiplier Key=%s Value=%s",
-						rank.getKey(), rank.getValue());
-			if (killer.hasPermission(rank.getKey())) {
-				MobHunting.debug("Found - RankMultiplier Key=%s Value=%s",
-						rank.getKey(), rank.getValue());
-				return true;
-			}
+				if (killer.hasPermission(rank.getKey())) {
+					MobHunting.debug("RankMultiplier Key=%s Value=%s",
+							rank.getKey(), rank.getValue());
+					return true;
+				}
 		}
 		MobHunting.debug("%s has no Rank Multiplier", killer.getName());
 		return false;

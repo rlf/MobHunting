@@ -54,12 +54,12 @@ public abstract class DatabaseDataStore implements DataStore {
 	/**
 	 * Args: player uuid
 	 */
-	protected PreparedStatement mUpdatePlayerLearningMode;
-
+	protected PreparedStatement mGetPlayerData;
+	
 	/**
 	 * Args: player uuid
 	 */
-	protected PreparedStatement mGetPlayerLearningMode;
+	protected PreparedStatement mUpdatePlayerData;
 
 	@Override
 	public void initialize() throws DataStoreException {
@@ -100,8 +100,9 @@ public abstract class DatabaseDataStore implements DataStore {
 		mLoadAchievementsStatement.close();
 		mGetPlayerUUID.close();
 		mUpdatePlayerName.close();
-		mUpdatePlayerLearningMode.close();
-		mGetPlayerLearningMode.close();
+		mGetPlayerData.close();
+		mUpdatePlayerData.close();
+
 	}
 
 	protected void rollback() throws DataStoreException {
@@ -128,8 +129,6 @@ public abstract class DatabaseDataStore implements DataStore {
 	protected Map<UUID, Integer> getPlayerIds(Set<OfflinePlayer> players)
 			throws SQLException {
 
-		//mConnection.commit();
-		
 		setupStatement_1(mConnection);
 
 		myAddPlayerStatement.clearBatch();
@@ -142,7 +141,7 @@ public abstract class DatabaseDataStore implements DataStore {
 		}
 		myAddPlayerStatement.executeBatch();
 		myAddPlayerStatement.close();
-		
+
 		int left = players.size();
 		Iterator<OfflinePlayer> it = players.iterator();
 		HashMap<UUID, Integer> ids = new HashMap<UUID, Integer>();
@@ -214,7 +213,7 @@ public abstract class DatabaseDataStore implements DataStore {
 								+ player.getUniqueId().toString());
 				updatePlayerName(player);
 			}
-			int res=result.getInt(3);
+			int res = result.getInt(3);
 			result.close();
 			return res;
 		}
@@ -302,42 +301,50 @@ public abstract class DatabaseDataStore implements DataStore {
 			throw new DataStoreException(e);
 		}
 	}
-	
-	@Override
-	public boolean getPlayerLearningMode(OfflinePlayer player)
-			throws DataStoreException {
-		try {
-			mGetPlayerLearningMode
-					.setString(1, player.getUniqueId().toString());
-			ResultSet set = mGetPlayerLearningMode.executeQuery();
-			if (set.next()) {
-				if (set.getBoolean(1)) {
-					set.close();
-					return true;
-				} else {
-					set.close();
-					return false;
-				}
-			}
-			throw new UserNotFoundException("User " + player.getName()
-					+ " is not present in database");
-		} catch (SQLException e) {
-			throw new DataStoreException(e);
-		}
-	}
 
 	@Override
-	public void setPlayerLearningMode(Set<PlayerStore> players) throws DataStoreException {
+	public PlayerData getPlayerData(OfflinePlayer player)
+			throws DataStoreException {
 		try {
-			for (PlayerStore player : players) {
-				mUpdatePlayerLearningMode.setString(1, player.getLearningMode() ? "1" : "0");
-				mUpdatePlayerLearningMode.setString(2, player.getPlayer().getUniqueId()
-						.toString());
-				mUpdatePlayerLearningMode.addBatch();
+			mGetPlayerStatement[0]
+					.setString(1, player.getUniqueId().toString());
+
+			ResultSet result = mGetPlayerStatement[0].executeQuery();
+
+			if (result.next()) {
+				PlayerData ps = new PlayerData(player,
+						result.getBoolean("LEARNING_MODE"),
+						result.getBoolean("MUTE_MODE"));
+
+				result.close();
+				return ps;
 			}
-			mUpdatePlayerLearningMode.executeBatch();
-			mUpdatePlayerLearningMode.close();
-			
+
+		} catch (SQLException e) {
+			MobHunting.debug("ERROR in PlayerData.getPlayerData");
+			e.printStackTrace();
+		}
+
+		throw new UserNotFoundException("User " + player.toString()
+				+ " is not present in database");
+	}
+	
+	@Override
+	public void savePlayerData(Set<PlayerData> playerDataSet)
+			throws DataStoreException {
+		try {
+			for (PlayerData playerData : playerDataSet) {
+				mUpdatePlayerData.setString(1, playerData.isLearningMode() ? "1"
+						: "0");
+				mUpdatePlayerData.setString(2, playerData.isMuted() ? "1"
+						: "0");
+				mUpdatePlayerData.setString(3, playerData.getPlayer()
+						.getUniqueId().toString());
+				mUpdatePlayerData.addBatch();
+			}
+			mUpdatePlayerData.executeBatch();
+			mUpdatePlayerData.close();
+
 			mConnection.commit();
 		} catch (SQLException e) {
 			rollback();

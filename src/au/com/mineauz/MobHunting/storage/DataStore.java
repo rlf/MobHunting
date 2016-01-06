@@ -25,8 +25,8 @@ public interface DataStore {
 
 	public OfflinePlayer getPlayerByName(String name) throws DataStoreException;
 
-	public boolean getPlayerLearningMode(OfflinePlayer player) throws DataStoreException;
-
-	public void setPlayerLearningMode(Set<PlayerStore> players) throws DataStoreException;
+	public PlayerData getPlayerData(OfflinePlayer player) throws DataStoreException;
 	
+	public void savePlayerData(Set<PlayerData> playerDataSet) throws DataStoreException;
+
 }

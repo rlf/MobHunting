@@ -6,7 +6,9 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
 import au.com.mineauz.MobHunting.Messages;
+import au.com.mineauz.MobHunting.MobHunting;
 import au.com.mineauz.MobHunting.update.UpdateHelper;
+import au.com.mineauz.MobHunting.update.UpdateStatus;
 
 public class VersionCommand implements ICommand {
 	@Override
@@ -26,8 +28,8 @@ public class VersionCommand implements ICommand {
 
 	@Override
 	public String[] getUsageString(String label, CommandSender sender) {
-		return new String[] { label + ChatColor.RED + " version" + ChatColor.GOLD
-				+ " to get the version number" };
+		return new String[] { label + ChatColor.RED + " version"
+				+ ChatColor.GOLD + " to get the version number" };
 	}
 
 	@Override
@@ -50,8 +52,13 @@ public class VersionCommand implements ICommand {
 
 		sender.sendMessage(ChatColor.GREEN
 				+ Messages.getString(
-						"mobhunting.commands.version.version-number",
-						UpdateHelper.getBukkitUpdate().getVersionName()));
+						"mobhunting.commands.version.version-number","version",
+						MobHunting.instance.pluginVersion));
+		if (UpdateHelper.getUpdateAvailable() == UpdateStatus.AVAILABLE)
+			sender.sendMessage(ChatColor.GREEN
+					+ Messages.getString(
+							"mobhunting.commands.version.newversion-number","version",
+							UpdateHelper.getBukkitUpdate().getVersionName()));
 		if (sender.hasPermission("mobhunting.update")) {
 			UpdateHelper.pluginUpdateCheck(sender, true, true);
 		}

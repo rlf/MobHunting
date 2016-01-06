@@ -1,4 +1,4 @@
-package au.com.mineauz.MobHunting.util;
+package au.com.mineauz.MobHunting.update;
 
 import java.io.BufferedReader;
 import java.io.IOException;

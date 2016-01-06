@@ -58,7 +58,7 @@ public class SQLiteDataStore extends DatabaseDataStore {
 		String lm = MobHunting.config().learningMode ? "1" : "0";
 		create.executeUpdate("CREATE TABLE IF NOT EXISTS mh_Players (UUID TEXT PRIMARY KEY, NAME TEXT, "
 				+ "PLAYER_ID INTEGER NOT NULL, LEARNING_MODE INTEGER NOT NULL DEFAULT "
-				+ lm + ")");
+				+ lm + ", MUTE_MODE INTEGER NOT NULL DEFAULT 0 )");
 		String dataString = "";
 		for (StatType type : StatType.values())
 			dataString += ", " + type.getDBColumn()
@@ -176,10 +176,8 @@ public class SQLiteDataStore extends DatabaseDataStore {
 				.prepareStatement("SELECT UUID FROM mh_Players WHERE NAME=?;");
 		mUpdatePlayerName = connection
 				.prepareStatement("UPDATE mh_Players SET NAME=? WHERE UUID=?;");
-		mUpdatePlayerLearningMode = connection
-				.prepareStatement("UPDATE mh_Players SET LEARNING_MODE=? WHERE UUID=?;");
-		mGetPlayerLearningMode = connection
-				.prepareStatement("SELECT LEARNING_MODE FROM mh_Players WHERE UUID=?;");
+		mUpdatePlayerData = connection
+				.prepareStatement("UPDATE mh_Players SET LEARNING_MODE=?, MUTE_MODE=? WHERE UUID=?;");
 	}
 
 	@Override
@@ -187,7 +185,8 @@ public class SQLiteDataStore extends DatabaseDataStore {
 		myAddPlayerStatement = connection
 				.prepareStatement("INSERT OR IGNORE INTO mh_Players "
 						+ "VALUES(?, ?, (SELECT IFNULL(MAX(PLAYER_ID),0)+1 FROM mh_Players),"
-						+ (MobHunting.config().learningMode ? "1" : "0") + ");");
+						+ (MobHunting.config().learningMode ? "1" : "0")
+						+ ",0 );");
 	}
 
 	@Override
@@ -292,7 +291,8 @@ public class SQLiteDataStore extends DatabaseDataStore {
 
 		// Create new empty tables if they do not exist
 		statement
-				.executeUpdate("CREATE TABLE IF NOT EXISTS mh_Players (UUID TEXT PRIMARY KEY, NAME TEXT, PLAYER_ID INTEGER NOT NULL)"); //$NON-NLS-1$
+				.executeUpdate("CREATE TABLE IF NOT EXISTS mh_Players (UUID TEXT PRIMARY KEY, NAME TEXT, PLAYER_ID INTEGER NOT NULL,"
+						+ "LEARNIN_MODE INTEGER NOT NULL, MUTE_MODE INTEGER NOT NULL )");
 		String dataString = "";
 		for (StatType type : StatType.values())
 			dataString += ", " + type.getDBColumn()
@@ -895,6 +895,17 @@ public class SQLiteDataStore extends DatabaseDataStore {
 							+ lm);
 		}
 
+		try {
+			ResultSet rs = statement
+					.executeQuery("SELECT MUTE_MODE from mh_Players LIMIT 0");
+			rs.close();
+		} catch (SQLException e) {
+			System.out
+					.println("[MobHunting]*** Adding new Player mute mode to MobHunting Database ***");
+			statement
+					.executeUpdate("alter table `mh_Players` add column `MUTE_MODE` INTEGER NOT NULL DEFAULT 0");
+		}
+
 		MobHunting.debug("Updating database triggers.");
 		statement.executeUpdate("DROP TRIGGER IF EXISTS `mh_DailyInsert`");
 		statement.executeUpdate("DROP TRIGGER IF EXISTS `mh_DailyUpdate`");
@@ -903,4 +914,5 @@ public class SQLiteDataStore extends DatabaseDataStore {
 		statement.close();
 		connection.commit();
 	}
+
 }

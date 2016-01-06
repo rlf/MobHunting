@@ -14,7 +14,6 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import au.com.mineauz.MobHunting.Messages;
 import au.com.mineauz.MobHunting.MobHunting;
-import au.com.mineauz.MobHunting.util.BukkitUpdate;
 
 public class UpdateHelper {
 
@@ -51,18 +50,6 @@ public class UpdateHelper {
 	public static void hourlyUpdateCheck(final CommandSender sender,
 			boolean updateCheck, final boolean silent) {
 		if (updateCheck) {
-			// Check for updates asynchronously in background
-			// MobHunting.instance.getServer().getScheduler()
-			// .runTaskAsynchronously(MobHunting.instance, new Runnable() {
-			// @Override
-			// public void run() {
-			// bukkitUpdate = new BukkitUpdate(63718); // MobHunting
-			// if (!bukkitUpdate.isSuccess()) {
-			// bukkitUpdate = null;
-			// }
-			// }
-			// });
-			// Check if bukkitUpdate is found in background every hour
 			new BukkitRunnable() {
 				@Override
 				public void run() {
@@ -108,8 +95,9 @@ public class UpdateHelper {
 					@Override
 					public void run() {
 						if (count++ > 10) {
-							sender.sendMessage(ChatColor.RED
-									+ "[MobHunting] No updates found. (No response from server after 10s)");
+							if (!silent)
+								sender.sendMessage(ChatColor.RED
+										+ "[MobHunting] No updates found. (No response from server after 10s)");
 							this.cancel();
 						} else {
 							// Wait for the response
@@ -118,15 +106,18 @@ public class UpdateHelper {
 									updateAvailable = isUpdateNewerVersion();
 									if (updateAvailable == UpdateStatus.AVAILABLE) {
 										sender.sendMessage(ChatColor.GREEN
+												+ "[MobHunting]"
 												+ Messages
 														.getString("mobhunting.commands.update.version-found"));
 										if (MobHunting.config().autoupdate) {
 											downloadAndUpdateJar();
 											sender.sendMessage(ChatColor.GREEN
+													+ "[MobHunting]"
 													+ Messages
 															.getString("mobhunting.commands.update.complete"));
 										} else {
 											sender.sendMessage(ChatColor.GREEN
+													+ "[MobHunting]"
 													+ Messages
 															.getString("mobhunting.commands.update.help"));
 										}
@@ -134,6 +125,7 @@ public class UpdateHelper {
 									} else {
 										if (!silent) {
 											sender.sendMessage(ChatColor.GOLD
+													+ "[MobHunting]"
 													+ Messages
 															.getString("mobhunting.commands.update.no-update"));
 										}
@@ -148,6 +140,7 @@ public class UpdateHelper {
 																// every second
 			} else {
 				sender.sendMessage(ChatColor.GREEN
+						+ "[MobHunting]"
 						+ Messages
 								.getString("mobhunting.commands.update.complete"));
 			}
