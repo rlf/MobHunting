@@ -27,7 +27,7 @@ import au.com.mineauz.MobHunting.storage.DataCallback;
 import au.com.mineauz.MobHunting.storage.StatStore;
 import au.com.mineauz.MobHunting.storage.TimePeriod;
 
-public class Leaderboard implements DataCallback<List<StatStore>> {
+public class WorldLeaderboard implements DataCallback<List<StatStore>> {
 	private static String EMPTY_STRING = ""; 
 	private Location mLocation;
 	private BlockFace mFacing;
@@ -44,7 +44,7 @@ public class Leaderboard implements DataCallback<List<StatStore>> {
 
 	private List<StatStore> mData;
 
-	public Leaderboard(Location location, BlockFace facing, int width,
+	public WorldLeaderboard(Location location, BlockFace facing, int width,
 			int height, boolean horizontal, StatType[] stat, TimePeriod[] period) {
 		Validate.isTrue(facing == BlockFace.NORTH || facing == BlockFace.EAST
 				|| facing == BlockFace.SOUTH || facing == BlockFace.WEST);
@@ -61,7 +61,7 @@ public class Leaderboard implements DataCallback<List<StatStore>> {
 		mTypeIndex = 0;
 	}
 
-	Leaderboard() {
+	WorldLeaderboard() {
 	}
 
 	List<StatStore> getCurrentStats() {
@@ -175,7 +175,7 @@ public class Leaderboard implements DataCallback<List<StatStore>> {
 		MobHunting.instance.getDataStore().requestStats(getType(), getPeriod(),
 				mWidth * mHeight * 2, this);
 	}
-
+	
 	public void refresh() {
 		Iterator<StatStore> it;
 		if (mData == null)
@@ -188,10 +188,8 @@ public class Leaderboard implements DataCallback<List<StatStore>> {
 		if (isLoaded(labelSign)) {
 			if (labelSign.getType() != Material.WALL_SIGN) {
 				labelSign.setType(Material.WALL_SIGN);
-				((Sign) labelSign.getState().getData())
-						.setFacingDirection(mFacing);
 			}
-
+			
 			org.bukkit.block.Sign sign = (org.bukkit.block.Sign) labelSign
 					.getState();
 
@@ -216,9 +214,13 @@ public class Leaderboard implements DataCallback<List<StatStore>> {
 
 			sign.setLine(3, ChatColor.YELLOW
 					+ getPeriod().translateNameFriendly());
+			sign.setData(sign.getData());
+			
+			((Sign) sign.getData())
+			.setFacingDirection(mFacing);
 
 			sign.update(true, false);
-		}
+		} 
 
 		// Update all the leaderboard signs
 		int place = 1;
@@ -325,7 +327,7 @@ public class Leaderboard implements DataCallback<List<StatStore>> {
 		mType = type;
 		mTypeIndex = 0;
 	}
-
+	
 	public void setPeriod(TimePeriod[] period) {
 		mPeriod = period;
 		mPeriodIndex = 0;
@@ -511,4 +513,5 @@ public class Leaderboard implements DataCallback<List<StatStore>> {
 
 		mLocation = pos.toLocation(world);
 	}
+
 }

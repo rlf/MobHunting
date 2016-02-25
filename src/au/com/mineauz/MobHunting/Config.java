@@ -1,6 +1,7 @@
 package au.com.mineauz.MobHunting;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 
@@ -56,7 +57,10 @@ public class Config extends AutoConfig {
 
 		setCategoryComment(
 				"mobs",
-				"Here is where you set the base prize in $ for killing a mob of each type"
+				"########################################################################"
+						+ "\nRewards for killing mobs."
+						+ "\n########################################################################"
+						+ "\nHere is where you set the base prize in $ for killing a mob of each type"
 						+ "\nYou can either set a decimal number ex 1.23 or a range 1.23:2.23"
 						+ "\nFor each kill you can run a console command to give the player a reward."
 						+ "\nYou can use the following variables {player},{world},"
@@ -74,26 +78,42 @@ public class Config extends AutoConfig {
 						+ "\n{mob-cmd-run-frequency-base} times in average. If mob-cmd-run-frequency=0 it"
 						+ "\nwill never run. If f.ex. mob-cmd-run-frequency=50 and "
 						+ "\nmob-cmd-run-frequency-base=100 it will run run every second time.");
-		setCategoryComment("boss",
-				"Here is where you set the base prize in $ for killing the bosses");
+		setCategoryComment(
+				"boss",
+				"########################################################################"
+						+ "\nRewards for killing bosses"
+						+ "\n########################################################################"
+						+ "\nHere is where you set the base prize in $ for killing the bosses");
 		setCategoryComment(
 				"passive",
-				"Here is where you set the base prize in $ for killing passive/friendly mobs."
+				"########################################################################"
+						+ "\nRewards for killing passive mobs"
+						+ "\n########################################################################"
+						+ "\nHere is where you set the base prize in $ for killing passive/friendly mobs."
 						+ "\nBy default the player does not get a reward for killing friendly mobs."
 						+ "\nIf you make the number negative, the reward will be a fine for killing a passive animal.");
 		setCategoryComment(
 				"bonus",
-				"These are bonus multipliers that can modify the base prize. "
+				"########################################################################"
+						+ "\n Bonus multipliers"
+						+ "\n########################################################################"
+						+ "\nThese are bonus multipliers that can modify the base prize. "
 						+ "\nREMEMBER: These are not in $ but they are a multiplier. "
 						+ "\nSetting to 1 will disable them.");
 		setCategoryComment(
 				"penalty",
-				"These are penalty multipliers that can modify the base prize. "
+				"########################################################################"
+						+ "\nPenalty multipliers"
+						+ "\n########################################################################"
+						+ "\nThese are penalty multipliers that can modify the base prize. "
 						+ "\nREMEMBER: These are not in $ but they are a multiplier. "
 						+ "\nSetting to 1 will disable them.");
 		setCategoryComment(
 				"special",
-				"Here is where you set the prize in $ for achieving a special kill. "
+				"########################################################################"
+						+ "\nSpecial / Achievements rewards"
+						+ "\n########################################################################"
+						+ "\nHere is where you set the prize in $ for achieving a special kill. "
 						+ "\nFor each achievment you can run a console command to give the player a reward. "
 						+ "\nYou can use the following variables {player},{world}."
 						+ "\nAn example could be to give the player permission to fly "
@@ -101,15 +121,40 @@ public class Config extends AutoConfig {
 						+ "\nYou can also specify the message send to the player."
 						+ "\nYou can run many console commands on each line, each command"
 						+ "\nmust be separated by |");
-		setCategoryComment("assists",
-				"They players can get an extra reward if they help each other killing mobs.");
+		setCategoryComment(
+				"assists",
+				"########################################################################"
+						+ "\nRewards for assisting killings"
+						+ "\n########################################################################"
+						+ "\nThey players can get an extra reward if they help each other killing mobs.");
 		setCategoryComment(
 				"killstreak",
-				"Set the multiplier when the player kills 1,2,3,4 mob in a row without getting damage.");
+				"########################################################################"
+						+ "\nReward for kills in a row"
+						+ "\n########################################################################"
+						+ "\nSet the multiplier when the player kills 1,2,3,4 mob in a row without getting damage.");
+		setCategoryComment(
+				"multiplier",
+				"########################################################################"
+						+ "\nRank multipliers"
+						+ "\n########################################################################"
+						+ "\nYou can add multipliers for players with different ranks/groups. To do this"
+						+ "\nyou must set give the user/group permissions with a format like this:"
+						+ "\nmobhunting.multiplier.guest"
+						+ "\nmobhunting.multiplier.guardian"
+						+ "\nmobhunting.multiplier.staff"
+						+ "\nmobhunting.multiplier.hasVoted"
+						+ "\nmobhunting.multiplier.donator"
+						+ "\nyou can make your own permission nodes. You just need to keep the format"
+						+ "\nmobhunting.multiplier.name 'value' in your permissions file and the "
+						+ "format below in this file.");
 
 		setCategoryComment(
 				"pvp",
-				"Pvp configuration. Set pvp-allowed = true if you want give the players a reward when they kill eachother."
+				"########################################################################"
+						+ "\nPvp rewards"
+						+ "\n########################################################################"
+						+ "\nPvp configuration. Set pvp-allowed = true if you want give the players a reward when they kill eachother."
 						+ "\nYou can alsp run a console command when this happens to give the player a reward or punish him."
 						+ "\nYou can you the following variables {player},{world},{killed_player}."
 						+ "\nAn example could be to give the player permission to fly "
@@ -117,6 +162,13 @@ public class Config extends AutoConfig {
 						+ "\nYou can also specify the message send to the player."
 						+ "\nYou can run many console commands on each line, each command"
 						+ "\nmust be separated by |");
+		setCategoryComment(
+				"disguises",
+				"########################################################################"
+						+ "\nDisguises rewards"
+						+ "\n########################################################################"
+						+ "\nHere is where can define the actions when a player is under disguise (attacker)"
+						+ "\n or when the attacked (victim)");
 
 		setCategoryComment(
 				"plugins",
@@ -128,6 +180,12 @@ public class Config extends AutoConfig {
 				"database",
 				"########################################################################"
 						+ "\nDatabase Settings."
+						+ "\n########################################################################");
+
+		setCategoryComment(
+				"updates",
+				"########################################################################"
+						+ "\nUpdate settings"
 						+ "\n########################################################################");
 
 		setCategoryComment(
@@ -374,15 +432,17 @@ public class Config extends AutoConfig {
 	private int enderdragonFrequency = 100;
 	@ConfigField(name = "enderdragon-cmd-run-frequency-base", category = "boss")
 	private int enderdragonFrequencyBase = 100;
-	
+
 	// Usage: /summon <EntityName> [x] [y] [z] [dataTag]
-	// Try this!!!! /summon Minecart ~ ~ ~20 {Riding:{id:EnderDragon}} 
-	// Then enter to the minecart 
-	// WITH THAT YOU CAN RIDE AN ENDERDRAGON!!! 
-	
-	// /summon Minecart ~ ~ ~ {Riding:{Creeper,Riding:{id:Ozelot}}}  ...Yes..Ocelot need to be spelled Ozelot..
-	
-	// /summon Skeleton ~ ~ ~ {Riding:{id:Spider},Equipment:[{id:57},{id:310},{id:310},{id:310},{id:310}]}
+	// Try this!!!! /summon Minecart ~ ~ ~20 {Riding:{id:EnderDragon}}
+	// Then enter to the minecart
+	// WITH THAT YOU CAN RIDE AN ENDERDRAGON!!!
+
+	// /summon Minecart ~ ~ ~ {Riding:{Creeper,Riding:{id:Ozelot}}}
+	// ...Yes..Ocelot need to be spelled Ozelot..
+
+	// /summon Skeleton ~ ~ ~
+	// {Riding:{id:Spider},Equipment:[{id:57},{id:310},{id:310},{id:310},{id:310}]}
 
 	// #####################################################################################
 	// Passive Mobs
@@ -410,7 +470,7 @@ public class Config extends AutoConfig {
 	private int chickenFrequencyBase = 100;
 
 	@ConfigField(name = "cow", category = "passive")
-	private String cowPrize = "0";
+	private String cowPrize = "5";
 	@ConfigField(name = "cow-cmd", category = "passive")
 	private String cowCmd = "";
 	@ConfigField(name = "cow-cmd-desc", category = "passive")
@@ -432,7 +492,7 @@ public class Config extends AutoConfig {
 	private int horseFrequencyBase = 100;
 
 	@ConfigField(name = "mushroom-cow", category = "passive")
-	private String mushroomCowPrize = "0";
+	private String mushroomCowPrize = "";
 	@ConfigField(name = "mushroom-cow-cmd", category = "passive")
 	private String mushroomCowCmd = "";
 	@ConfigField(name = "mushroom-cow-cmd-desc", category = "passive")
@@ -553,12 +613,11 @@ public class Config extends AutoConfig {
 	public double bonusCritical = 2;
 	@ConfigField(name = "bonus-mob-chance", category = "bonus", comment = "This is the chance (% chance 0-100) that a bonus mob will spawn.")
 	public double bonusMobChance = 0.2;
-	@ConfigField(name = "babyMultiplyer", category = "bonus", comment = "Bonus for killing a Baby mob.")
+	@ConfigField(name = "babyMultiplier", category = "bonus", comment = "Bonus for killing a Baby mob.")
 	public double babyMultiplier = 1.2;
 
-
 	// #####################################################################################
-	// Specials
+	// Specials / Achievements
 	// #####################################################################################
 	@ConfigField(name = "charged-kill", category = "special")
 	public double specialCharged = 1000;
@@ -717,10 +776,27 @@ public class Config extends AutoConfig {
 	public double killstreakLevel4Mult = 4;
 
 	// #####################################################################################
+	// Multiplier by rank / permission
+	// #####################################################################################
+	@ConfigField(name = "rank-multiplier", category = "multiplier")
+	public HashMap<String, String> rankMultiplier = new HashMap<String, String>();
+	{
+		rankMultiplier.put("mobhunting.multiplier.guest", "0.9");
+		rankMultiplier.put("mobhunting.multiplier.guardian", "1.02");
+		rankMultiplier.put("mobhunting.multiplier.staff", "1.05");
+		rankMultiplier.put("mobhunting.multiplier.hasVoted", "2");
+		rankMultiplier.put("mobhunting.multiplier.donator", "3");
+	}
+
+	// #####################################################################################
 	// PVP
 	// #####################################################################################
 	@ConfigField(name = "pvp-allowed", category = "pvp", comment = "Set pvpAllowed=false to disable rewards on killing other players.")
 	public boolean pvpAllowed = true;
+	@ConfigField(name = "rob-from-victim", category = "pvp", comment = "Set rob-from-victim=true to steal from the victim or "
+			+ "\nrob-from-victim=false to get the reward mpney from the server.")
+	public boolean robFromVictim = true;
+
 	@ConfigField(name = "pvp-kill-prize", category = "pvp", comment = "The kill prize kan be a number to stel x dollars from the killed player,"
 			+ "\nor it kan be a cut in percent of his balance.")
 	public String pvpKillPrize = "1.5%";
@@ -728,6 +804,33 @@ public class Config extends AutoConfig {
 	public String pvpKillCmd = "give {player} 397 1 3 {SkullOwner:\"{killed_player}\"}|give {player} diamond 1";
 	@ConfigField(name = "pvp-kill-cmd-desc", category = "pvp", comment = "Write the message to the killer, describing the reward / console commands")
 	public String pvpKillCmdDesc = "You got {killed_player}\'s skull";
+
+	// #####################################################################################
+	// Disguises
+	// #####################################################################################
+	@ConfigField(name = "disable-integration-i-disguise", category = "disguises", comment = "Disable integration with iDisguise")
+	public boolean disableIntegrationIDisguise = false;
+
+	@ConfigField(name = "disable-integration-disguisecraft", category = "disguises", comment = "Disable integration with DisguiseCcraft")
+	public boolean disableIntegrationDisguiseCraft = false;
+
+	@ConfigField(name = "disable-integration-libsdisguises", category = "disguises", comment = "Disable integration with LibsDisguises")
+	public boolean disableIntegrationLibsDisguises = false;
+
+	@ConfigField(name = "remove-disguise-when-attacking", category = "disguises", comment = "Set pvpAllowed=false to disable rewards on killing other players.")
+	public boolean removeDisguiseWhenAttacking = true;
+
+	@ConfigField(name = "remove-disguise-when-attacked", category = "disguises", comment = "Set pvpAllowed=false to disable rewards on killing other players.")
+	public boolean removeDisguiseWhenAttacked = true;
+
+	@ConfigField(name = "undercover-multiplier", category = "disguises", comment = "Bonus multiplier for killing while disgused."
+			+ "\nCan be both positive an negative = reward or penalty"
+			+ "\nand over and under 1 = raise or lower the reward. ")
+	public double undercoverMultiplier = 0.95;
+	@ConfigField(name = "cover-blown-multiplier", category = "disguises", comment = "Bonus multiplier for killing a disgused player."
+			+ "\nCan be both positive an negative = reward or penalty"
+			+ "\nand over and under 1 = raise or lower the reward. ")
+	public double coverBlownMultiplier = 1.2;
 
 	// #####################################################################################
 	// Plugin integration
@@ -759,6 +862,9 @@ public class Config extends AutoConfig {
 	@ConfigField(name = "disable-integration-worldguard", category = "plugins", comment = "Disable integration with WorldGuard")
 	public boolean disableIntegrationWorldGuard = false;
 
+	@ConfigField(name = "disable-integration-essentials", category = "plugins", comment = "Disable integration with Essentials")
+	public boolean disableIntegrationEssentials = false;
+
 	// #####################################################################################
 	// Database
 	// #####################################################################################
@@ -772,6 +878,18 @@ public class Config extends AutoConfig {
 	public String databaseHost = "localhost:3306";
 	@ConfigField(name = "database", category = "database")
 	public String databaseName = "mobhunting";
+
+	// #####################################################################################
+	// Update Setting
+	// #####################################################################################
+	@ConfigField(name = "update-check", category = "updates", comment = "Check if there is a new version of the plugin available.")
+	public boolean updateCheck = true;
+	@ConfigField(name = "check_every", category = "updates", comment = "Set the number of seconds between each check. Recommended setting is"
+			+ "\ncheck_every: 3600 ~ to check every hour.")
+	public int checkEvery = 3600;
+	@ConfigField(name = "autoupdate", category = "updates", comment = "Set 'autoupdate: true' if you want new updates downloaded and installed."
+			+ "\nYou will still have to reboot the server manually.")
+	public boolean autoupdate = false;
 
 	// #####################################################################################
 	// Generel settings
@@ -795,8 +913,18 @@ public class Config extends AutoConfig {
 	public int killTimeout = 4;
 	@ConfigField(name = "kill-debug", category = "general", comment = "If kills are not being registered in mob hunting. Enable this to see why they arent")
 	public boolean killDebug = false;
-	@ConfigField(name = "update-check", category = "general", comment = "Check if there is a new version of the plugin available.")
-	public boolean updateCheck = true;
+
+	@ConfigField(name = "reward_rounding", category = "general", comment = "Rounding of rewards when you uses a range or %. (ex creeperPrize=10:30) the reward."
+			+ "\nAll numbers except 0 can be used. "
+			+ "\nSet rounding_reward=1 if you want integers. IE. 10,11,12,13,14..."
+			+ "\nSet rounding_reward=0.01 if you want 2 decimals 10.00, 10.01, 10.02... integers."
+			+ "\nSet rounding_reward=5 if you want multipla of 5 IE. 10,15,20,25..."
+			+ "\nSet rounding_reward=2 if you want multipla of 2 IE. 10,12,14,16...")
+	public double rewardRounding = 0.01;
+	@ConfigField(name = "newplayer_learning_mode", category = "general", comment = "When a new playerjoins the server he will by default start"
+			+ "\nin 'LEARNING MODE' and get extra information about when he get rewards and not,"
+			+ "\nwhen killing Mobs. The player can disable this InGame by using the command '/mh learn'")
+	public boolean learningMode = true;
 
 	@Override
 	protected void onPostLoad() throws InvalidConfigurationException {
@@ -834,14 +962,14 @@ public class Config extends AutoConfig {
 							.substring(0, pvpKillPrize.length() - 1))
 							* MobHunting.getEconomy().getBalance((Player) mob)
 							/ 100);
-					return prize;
+					return round(prize);
 				} else if (pvpKillPrize.contains(":")) {
 					String[] str1 = pvpKillPrize.split(":");
 					double prize2 = (mRand.nextDouble()
 							* (Double.valueOf(str1[1]) - Double
 									.valueOf(str1[0])) + Double
 							.valueOf(str1[0]));
-					return Double.valueOf(prize2);
+					return round(Double.valueOf(prize2));
 				} else
 					return Double.valueOf(pvpKillPrize);
 			} else if (mob instanceof Blaze)
@@ -861,36 +989,39 @@ public class Config extends AutoConfig {
 				case WITHER:
 					return getPrice(witherSkeletonPrize);
 				}
-			} else if (mob instanceof CaveSpider)
-				return getPrice(caveSpiderPrize);
-			else if (mob instanceof Spider)
-				return getPrice(spiderPrize);
+			} else if (mob instanceof Spider)
+				if (mob instanceof CaveSpider)
+					return getPrice(caveSpiderPrize);
+				else
+					return getPrice(spiderPrize);
 			else if (mob instanceof Witch)
 				return getPrice(witchPrize);
 			else if (mob instanceof PigZombie)
-				// PigZombie is a subclass of Zombie. PigZombie must be checked
-				// before Zombie
+				// PigZombie is a subclass of Zombie.
 				if (((PigZombie) mob).isBaby())
-					return getPrice(zombiePigmanPrize) * babyMultiplier;
+					return round(getPrice(zombiePigmanPrize) * babyMultiplier);
 				else
 					return getPrice(zombiePigmanPrize);
 			else if (mob instanceof Zombie)
 				if (((Zombie) mob).isBaby())
-					return getPrice(zombiePrize) * babyMultiplier;
+					return round(getPrice(zombiePrize) * babyMultiplier);
 				else
 					return getPrice(zombiePrize);
 			else if (mob instanceof Ghast)
 				return getPrice(ghastPrize);
 			else if (mob instanceof Slime)
-				return getPrice(slimeTinyPrize) * ((Slime) mob).getSize();
+				if (mob instanceof MagmaCube)
+					// MagmaCube is a subclass of Slime
+					return getPrice(magmaCubePrize)
+							* ((MagmaCube) mob).getSize();
+				else
+					return getPrice(slimeTinyPrize) * ((Slime) mob).getSize();
 			else if (mob instanceof EnderDragon)
 				return getPrice(enderdragonPrize);
 			else if (mob instanceof Wither)
 				return getPrice(witherPrize);
 			else if (mob instanceof IronGolem)
 				return getPrice(ironGolemPrize);
-			else if (mob instanceof MagmaCube)
-				return getPrice(magmaCubePrize);
 
 			// Passive mobs
 			else if (mob instanceof Bat)
@@ -898,11 +1029,13 @@ public class Config extends AutoConfig {
 			else if (mob instanceof Chicken)
 				return getPrice(chickenPrize);
 			else if (mob instanceof Cow)
-				return getPrice(cowPrize);
+				if (mob instanceof MushroomCow)
+					// MushroomCow is a subclass of Cow
+					return getPrice(mushroomCowPrize);
+				else
+					return getPrice(cowPrize);
 			else if (mob instanceof Horse)
 				return getPrice(horsePrize);
-			else if (mob instanceof MushroomCow)
-				return getPrice(mushroomCowPrize);
 			else if (mob instanceof Ocelot)
 				return getPrice(ocelotPrize);
 			else if (mob instanceof Pig)
@@ -940,13 +1073,18 @@ public class Config extends AutoConfig {
 		return 0;
 	}
 
+	private double round(double d) {
+		return Math.round(d / rewardRounding) * rewardRounding;
+
+	}
+
 	private double getPrice(String str) {
 		if (str.contains(":")) {
 			String[] str1 = str.split(":");
 			double prize = (mRand.nextDouble()
 					* (Double.valueOf(str1[1]) - Double.valueOf(str1[0])) + Double
 					.valueOf(str1[0]));
-			return prize;
+			return round(prize);
 		} else
 			return Double.valueOf(str);
 	}
@@ -995,42 +1133,46 @@ public class Config extends AutoConfig {
 				case WITHER:
 					return witherSkeletonCmd;
 				}
-			} else if (mob instanceof CaveSpider)
-				return caveSpiderCmd;
-			else if (mob instanceof Spider)
-				return spiderCmd;
+			} else if (mob instanceof Spider)
+				if (mob instanceof CaveSpider)
+					// CaveSpider is a sub class of Spider
+					return caveSpiderCmd;
+				else
+					return spiderCmd;
 			else if (mob instanceof Witch)
 				return witchCmd;
-			else if (mob instanceof PigZombie)
-				// PigZombie is a subclass of Zombie. PigZombie must be checked
-				// before Zombie
-				return zombiePigmanCmd;
 			else if (mob instanceof Zombie)
-				return zombieCmd;
+				if (mob instanceof PigZombie)
+					return zombiePigmanCmd;
+				else
+					return zombieCmd;
 			else if (mob instanceof Ghast)
 				return ghastCmd;
 			else if (mob instanceof Slime)
-				return slimeCmd;
+				if (mob instanceof MagmaCube)
+					return magmaCubeCmd;
+				else
+					return slimeCmd;
 			else if (mob instanceof EnderDragon)
 				return enderdragonCmd;
 			else if (mob instanceof Wither)
 				return witherCmd;
 			else if (mob instanceof IronGolem)
 				return ironGolemCmd;
-			else if (mob instanceof MagmaCube)
-				return magmaCubeCmd;
 
 			// Passive mobs
 			else if (mob instanceof Bat)
 				return batCmd;
 			else if (mob instanceof Chicken)
 				return chickenCmd;
+
 			else if (mob instanceof Cow)
-				return cowCmd;
+				if (mob instanceof MushroomCow)
+					return mushroomCowCmd;
+				else
+					return cowCmd;
 			else if (mob instanceof Horse)
 				return horseCmd;
-			else if (mob instanceof MushroomCow)
-				return mushroomCowCmd;
 			else if (mob instanceof Ocelot)
 				return ocelotCmd;
 			else if (mob instanceof Pig)
@@ -1109,30 +1251,32 @@ public class Config extends AutoConfig {
 				case WITHER:
 					return witherSkeletonCmdDesc;
 				}
-			} else if (mob instanceof CaveSpider)
-				return caveSpiderCmdDesc;
-			else if (mob instanceof Spider)
-				return spiderCmdDesc;
+			} else if (mob instanceof Spider)
+				if (mob instanceof CaveSpider)
+					return caveSpiderCmdDesc;
+				else
+					return spiderCmdDesc;
 			else if (mob instanceof Witch)
 				return witchCmdDesc;
-			else if (mob instanceof PigZombie)
-				// PigZombie is a subclass of Zombie. PigZombie must be checked
-				// before Zombie
-				return zombiePigmanCmdDesc;
 			else if (mob instanceof Zombie)
-				return zombieCmdDesc;
+				if (mob instanceof PigZombie)
+					return zombiePigmanCmdDesc;
+				else
+					return zombieCmdDesc;
 			else if (mob instanceof Ghast)
 				return ghastCmdDesc;
 			else if (mob instanceof Slime)
-				return slimeCmdDesc;
+				if (mob instanceof MagmaCube)
+					// MagmaCube is a subclass of Slime
+					return magmaCubeCmdDesc;
+				else
+					return slimeCmdDesc;
 			else if (mob instanceof EnderDragon)
 				return enderdragonCmdDesc;
 			else if (mob instanceof Wither)
 				return witherCmdDesc;
 			else if (mob instanceof IronGolem)
 				return ironGolemCmdDesc;
-			else if (mob instanceof MagmaCube)
-				return magmaCubeCmdDesc;
 
 			// Passive mobs
 			else if (mob instanceof Bat)
@@ -1140,11 +1284,13 @@ public class Config extends AutoConfig {
 			else if (mob instanceof Chicken)
 				return chickenCmdDesc;
 			else if (mob instanceof Cow)
-				return cowCmdDesc;
+				if (mob instanceof MushroomCow)
+					// MushroomCow is a subclass of Cow
+					return mushroomCowCmdDesc;
+				else
+					return cowCmdDesc;
 			else if (mob instanceof Horse)
 				return horseCmdDesc;
-			else if (mob instanceof MushroomCow)
-				return mushroomCowCmdDesc;
 			else if (mob instanceof Ocelot)
 				return ocelotCmdDesc;
 			else if (mob instanceof Pig)
@@ -1217,30 +1363,33 @@ public class Config extends AutoConfig {
 				case WITHER:
 					return witherSkeletonFrequency;
 				}
-			} else if (mob instanceof CaveSpider)
-				return caveSpiderFrequency;
-			else if (mob instanceof Spider)
-				return spiderFrequency;
+			} else if (mob instanceof Spider)
+				if (mob instanceof CaveSpider)
+					return caveSpiderFrequency;
+				else
+					return spiderFrequency;
 			else if (mob instanceof Witch)
 				return witchFrequency;
-			else if (mob instanceof PigZombie)
-				// PigZombie is a subclass of Zombie. PigZombie must be checked
-				// before Zombie
-				return zombiePigmanFrequency;
 			else if (mob instanceof Zombie)
-				return zombieFrequency;
+				if (mob instanceof PigZombie)
+					// PigZombie is a subclass of Zombie.
+					return zombiePigmanFrequency;
+				else
+					return zombieFrequency;
 			else if (mob instanceof Ghast)
 				return ghastFrequency;
 			else if (mob instanceof Slime)
-				return slimeFrequency;
+				if (mob instanceof MagmaCube)
+					// MagmaCube is a subclass of Slime
+					return magmaCubeFrequency;
+				else
+					return slimeFrequency;
 			else if (mob instanceof EnderDragon)
 				return enderdragonFrequency;
 			else if (mob instanceof Wither)
 				return witherFrequency;
 			else if (mob instanceof IronGolem)
 				return ironGolemFrequency;
-			else if (mob instanceof MagmaCube)
-				return magmaCubeFrequency;
 
 			// Passive mobs
 			else if (mob instanceof Bat)
@@ -1248,11 +1397,13 @@ public class Config extends AutoConfig {
 			else if (mob instanceof Chicken)
 				return chickenFrequency;
 			else if (mob instanceof Cow)
-				return cowFrequency;
+				if (mob instanceof MushroomCow)
+					// MushroomCow is a subclass of Cow
+					return mushroomCowFrequency;
+				else
+					return cowFrequency;
 			else if (mob instanceof Horse)
 				return horseFrequency;
-			else if (mob instanceof MushroomCow)
-				return mushroomCowFrequency;
 			else if (mob instanceof Ocelot)
 				return ocelotFrequency;
 			else if (mob instanceof Pig)
@@ -1325,30 +1476,34 @@ public class Config extends AutoConfig {
 				case WITHER:
 					return witherSkeletonFrequencyBase;
 				}
-			} else if (mob instanceof CaveSpider)
-				return caveSpiderFrequencyBase;
-			else if (mob instanceof Spider)
-				return spiderFrequencyBase;
+			} else if (mob instanceof Spider)
+				if (mob instanceof CaveSpider)
+					// Cavespider is a sub class of Spider
+					return caveSpiderFrequencyBase;
+				else
+					return spiderFrequencyBase;
 			else if (mob instanceof Witch)
 				return witchFrequencyBase;
-			else if (mob instanceof PigZombie)
-				// PigZombie is a subclass of Zombie. PigZombie must be checked
-				// before Zombie
-				return zombiePigmanFrequencyBase;
 			else if (mob instanceof Zombie)
-				return zombieFrequencyBase;
+				if (mob instanceof PigZombie)
+					// PigZombie is a subclass of Zombie.
+					return zombiePigmanFrequencyBase;
+				else
+					return zombieFrequencyBase;
 			else if (mob instanceof Ghast)
 				return ghastFrequencyBase;
 			else if (mob instanceof Slime)
-				return slimeFrequencyBase;
+				if (mob instanceof MagmaCube)
+					// MagmaCube is a subclass of Slime
+					return magmaCubeFrequencyBase;
+				else
+					return slimeFrequencyBase;
 			else if (mob instanceof EnderDragon)
 				return enderdragonFrequencyBase;
 			else if (mob instanceof Wither)
 				return witherFrequencyBase;
 			else if (mob instanceof IronGolem)
 				return ironGolemFrequencyBase;
-			else if (mob instanceof MagmaCube)
-				return magmaCubeFrequencyBase;
 
 			// Passive mobs
 			else if (mob instanceof Bat)
@@ -1356,11 +1511,14 @@ public class Config extends AutoConfig {
 			else if (mob instanceof Chicken)
 				return chickenFrequencyBase;
 			else if (mob instanceof Cow)
-				return cowFrequencyBase;
+				if (mob instanceof MushroomCow)
+					// MushroomCow is a subclass of Cow and must be detected
+					// first
+					return mushroomCowFrequencyBase;
+				else
+					return cowFrequencyBase;
 			else if (mob instanceof Horse)
 				return horseFrequencyBase;
-			else if (mob instanceof MushroomCow)
-				return mushroomCowFrequencyBase;
 			else if (mob instanceof Ocelot)
 				return ocelotFrequencyBase;
 			else if (mob instanceof Pig)

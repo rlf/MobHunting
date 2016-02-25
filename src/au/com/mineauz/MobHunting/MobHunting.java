@@ -1,12 +1,6 @@
 package au.com.mineauz.MobHunting;
 
 import java.io.File;
-
-import org.spongepowered.api.event.Subscribe;
-import org.spongepowered.api.event.state.ServerStartedEvent;
-import org.spongepowered.api.event.state.ServerStoppedEvent;
-import org.spongepowered.api.plugin.Plugin;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,7 +14,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.WeakHashMap;
-import java.util.logging.Logger;
 
 import net.milkbowl.vault.economy.Economy;
 
@@ -44,6 +37,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.ItemStack;
@@ -55,6 +49,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.mcstats.Metrics;
+import org.mcstats.Metrics.Graph;
 
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.flags.DefaultFlag;
@@ -66,13 +61,24 @@ import au.com.mineauz.MobHunting.commands.CheckGrindingCommand;
 import au.com.mineauz.MobHunting.commands.ClearGrindingCommand;
 import au.com.mineauz.MobHunting.commands.CommandDispatcher;
 import au.com.mineauz.MobHunting.commands.LeaderboardCommand;
+import au.com.mineauz.MobHunting.commands.LearnCommand;
 import au.com.mineauz.MobHunting.commands.ListAchievementsCommand;
+import au.com.mineauz.MobHunting.commands.MuteCommand;
+import au.com.mineauz.MobHunting.commands.NpcCommand;
 import au.com.mineauz.MobHunting.commands.ReloadCommand;
 import au.com.mineauz.MobHunting.commands.SelectCommand;
 import au.com.mineauz.MobHunting.commands.TopCommand;
+import au.com.mineauz.MobHunting.commands.UpdateCommand;
+import au.com.mineauz.MobHunting.commands.VersionCommand;
 import au.com.mineauz.MobHunting.commands.WhitelistAreaCommand;
+import au.com.mineauz.MobHunting.commands.RegionCommand;
 import au.com.mineauz.MobHunting.compatability.CitizensCompat;
 import au.com.mineauz.MobHunting.compatability.CompatibilityManager;
+import au.com.mineauz.MobHunting.compatability.DisguiseCraftCompat;
+import au.com.mineauz.MobHunting.compatability.DisguisesHelper;
+import au.com.mineauz.MobHunting.compatability.EssentialsCompat;
+import au.com.mineauz.MobHunting.compatability.IDisguiseCompat;
+import au.com.mineauz.MobHunting.compatability.LibsDisguisesCompat;
 import au.com.mineauz.MobHunting.compatability.MinigamesCompat;
 import au.com.mineauz.MobHunting.compatability.MobArenaCompat;
 import au.com.mineauz.MobHunting.compatability.MobArenaHelper;
@@ -90,16 +96,17 @@ import au.com.mineauz.MobHunting.storage.DataStore;
 import au.com.mineauz.MobHunting.storage.DataStoreException;
 import au.com.mineauz.MobHunting.storage.DataStoreManager;
 import au.com.mineauz.MobHunting.storage.MySQLDataStore;
+import au.com.mineauz.MobHunting.storage.PlayerData;
 import au.com.mineauz.MobHunting.storage.SQLiteDataStore;
+import au.com.mineauz.MobHunting.update.UpdateHelper;
 import au.com.mineauz.MobHunting.util.Misc;
-import au.com.mineauz.MobHunting.util.Update;
-import net.elseland.xikage.MythicMobs.Mobs.MythicMob;
 
 public class MobHunting extends JavaPlugin implements Listener {
 
 	// Constants
 	public final static String pluginName = "mobhunting";
 	public final static String tablePrefix = "mh_";
+	public String pluginVersion = "";
 
 	private Economy mEconomy;
 	public static MobHunting instance;
@@ -120,23 +127,27 @@ public class MobHunting extends JavaPlugin implements Listener {
 
 	private DataStore mStore;
 	private DataStoreManager mStoreManager;
+	public HashMap<UUID, PlayerData> playerData = new HashMap<UUID, PlayerData>();
 
 	private LeaderboardManager mLeaderboards;
 
 	private boolean mInitialized = false;
 
-	// Update object
-	private Update updateCheck = null;
+	// Metrics
+	Metrics metrics;
+	Graph mobsKilled, topKillers;
 
 	@Override
 	public void onLoad() {
-
 	}
 
 	@Override
 	public void onEnable() {
-		mInitialized = false;
+		// mInitialized = false;
 		instance = this;
+
+		pluginVersion = instance.getDescription().getVersion();
+		UpdateHelper.setCurrentJarFile(instance.getFile().getName());
 
 		Messages.exportDefaultLanguages();
 
@@ -188,14 +199,16 @@ public class MobHunting extends JavaPlugin implements Listener {
 		CompatibilityManager.register(MinigamesCompat.class, "Minigames");
 		CompatibilityManager.register(MyPetCompat.class, "MyPet");
 		CompatibilityManager.register(WorldGuardCompat.class, "WorldGuard");
-		CompatibilityManager.register(MobArenaCompat.class, "MobArena");
+		CompatibilityManager.register(MobArenaCompat.class, "MobArenaCompat");
 		CompatibilityManager.register(PVPArenaCompat.class, "PVPArena");
 		CompatibilityManager.register(MythicMobsCompat.class, "MythicMobs");
 		CompatibilityManager.register(CitizensCompat.class, "Citizens");
-		// CompatibilityManager.register(HeroesCompat.class, "Heroes");
-		// CompatibilityManager.register(MobDungeonMainCompat.class,
-		// "MobDungeon");
-		// CompatibilityManager.register(WarCompat.class, "War");
+		CompatibilityManager.register(EssentialsCompat.class, "Essentials");
+		CompatibilityManager.register(LibsDisguisesCompat.class,
+				"LibsDisguises");
+		CompatibilityManager.register(IDisguiseCompat.class, "iDisguise");
+		CompatibilityManager.register(DisguiseCraftCompat.class,
+				"DisguiseCraft");
 
 		CommandDispatcher cmd = new CommandDispatcher("mobhunt",
 				Messages.getString("mobhunting.command.base.description")
@@ -210,10 +223,16 @@ public class MobHunting extends JavaPlugin implements Listener {
 		cmd.registerCommand(new LeaderboardCommand());
 		cmd.registerCommand(new ClearGrindingCommand());
 		cmd.registerCommand(new WhitelistAreaCommand());
-
-		if (getServer().getPluginManager().isPluginEnabled("WorldEdit")) {
+		if (CompatibilityManager.isPluginLoaded(WorldEditCompat.class))
 			cmd.registerCommand(new SelectCommand());
-		}
+		if (CompatibilityManager.isPluginLoaded(WorldGuardCompat.class))
+			cmd.registerCommand(new RegionCommand());
+		cmd.registerCommand(new UpdateCommand());
+		cmd.registerCommand(new VersionCommand());
+		cmd.registerCommand(new LearnCommand());
+		cmd.registerCommand(new MuteCommand());
+		if (CompatibilityManager.isPluginLoaded(CitizensCompat.class))
+			cmd.registerCommand(new NpcCommand());
 
 		registerAchievements();
 		registerModifiers();
@@ -231,45 +250,22 @@ public class MobHunting extends JavaPlugin implements Listener {
 
 		mInitialized = true;
 
+		// Start Metrics
 		try {
-			Metrics metrics = new Metrics(this);
+			metrics = new Metrics(this);
+			mobsKilled = metrics.createGraph("Most killed mobs");
+			topKillers = metrics.createGraph("Top Hunters");
+			metrics.addGraph(mobsKilled);
+			metrics.addGraph(topKillers);
+			metrics.enable();
 			metrics.start();
 			debug("Metrics started");
 		} catch (IOException e) {
 			debug("Failed to start Metrics!");
-			// Failed to submit the stats :-(
 		}
 
-		// Check for updates asynchronously
-		if (instance.mConfig.updateCheck) {
-			checkUpdates();
-			new BukkitRunnable() {
-				int count = 0;
-
-				@Override
-				public void run() {
-					if (count++ > 10) {
-						instance.getLogger()
-								.info("["
-										+ pluginName
-										+ "]No updates found. (No response from server after 10s)");
-						this.cancel();
-					} else {
-						// Wait for the response
-						if (updateCheck != null) {
-							if (updateCheck.isSuccess()) {
-								checkUpdatesNotify(null);
-							} else {
-								instance.getLogger().info(
-										"[" + pluginName + "]No update.");
-							}
-							this.cancel();
-						}
-					}
-				}
-			}.runTaskTimer(instance, 0L, 20L); // Check status every second
-		}
-
+		UpdateHelper.hourlyUpdateCheck(getServer().getConsoleSender(),
+				instance.mConfig.updateCheck, false);
 	}
 
 	@Override
@@ -330,6 +326,9 @@ public class MobHunting extends JavaPlugin implements Listener {
 
 		mModifiers.add(new FlyingPenalty());
 		mModifiers.add(new GrindingPenalty());
+		mModifiers.add(new Undercover());
+		mModifiers.add(new CoverBlown());
+		mModifiers.add(new RankBonus());
 
 		// Check if horses exist
 		try {
@@ -452,10 +451,11 @@ public class MobHunting extends JavaPlugin implements Listener {
 	}
 
 	public static boolean isHuntEnabledInWorld(World world) {
-		for (String worldName : config().disabledInWorlds) {
-			if (world.getName().equalsIgnoreCase(worldName))
-				return false;
-		}
+		if (world != null)
+			for (String worldName : config().disabledInWorlds) {
+				if (world.getName().equalsIgnoreCase(worldName))
+					return false;
+			}
 
 		return true;
 	}
@@ -609,6 +609,13 @@ public class MobHunting extends JavaPlugin implements Listener {
 			instance.getLogger().info("[Debug] " + String.format(text, args));
 	}
 
+	public static void learn(Player player, String text, Object... args) {
+		if (player != null)
+			if (instance.playerData.get(player.getUniqueId()).isLearningMode())
+				player.sendMessage(ChatColor.AQUA + "[MobHunting] "
+						+ String.format(text, args));
+	}
+
 	@EventHandler
 	private void onWorldLoad(WorldLoadEvent event) {
 		List<Area> areas = mWhitelistedAreas.get(event.getWorld().getUID());
@@ -696,19 +703,20 @@ public class MobHunting extends JavaPlugin implements Listener {
 		if (!(event.getEntity() instanceof LivingEntity)
 				|| !isHuntEnabledInWorld(event.getEntity().getWorld()))
 			return;
-
-		if (WorldGuardCompat.isWorldGuardSupported()) {
-			if ((event.getDamager() instanceof Player)
-					|| (MyPetCompat.isMyPetSupported() && event.getDamager() instanceof MyPetEntity)) {
+		Entity damager = event.getDamager();
+		Entity damaged = event.getEntity();
+		if (CompatibilityManager.isPluginLoaded(WorldGuardCompat.class)) {
+			if ((damager instanceof Player)
+					|| (MyPetCompat.isMyPetSupported() && damager instanceof MyPetEntity)) {
 				RegionManager regionManager = WorldGuardCompat
 						.getWorldGuardPlugin().getRegionManager(
-								event.getDamager().getWorld());
+								damager.getWorld());
 				ApplicableRegionSet set = regionManager
-						.getApplicableRegions(event.getDamager().getLocation());
+						.getApplicableRegions(damager.getLocation());
 				if (set != null) {
 					if (!set.allows(DefaultFlag.MOB_DAMAGE)) {
 						debug("KillBlocked: %s is hiding in WG region with MOB_DAMAGE %s",
-								event.getDamager().getName(),
+								damager.getName(),
 								set.allows(DefaultFlag.MOB_DAMAGE));
 						return;
 					}
@@ -717,7 +725,7 @@ public class MobHunting extends JavaPlugin implements Listener {
 		}
 
 		DamageInformation info = null;
-		info = mDamageHistory.get(event.getEntity());
+		info = mDamageHistory.get(damaged);
 		if (info == null)
 			info = new DamageInformation();
 
@@ -726,26 +734,28 @@ public class MobHunting extends JavaPlugin implements Listener {
 		Player cause = null;
 		ItemStack weapon = null;
 
-		if (event.getDamager() instanceof Player)
-			cause = (Player) event.getDamager();
+		if (damager instanceof Player) {
+			cause = (Player) damager;
+			// TODO:
+			// if (cause.is
+		}
 
 		boolean projectile = false;
-		if (event.getDamager() instanceof Projectile) {
-			if (((Projectile) event.getDamager()).getShooter() instanceof Player)
-				cause = (Player) ((Projectile) event.getDamager()).getShooter();
+		if (damager instanceof Projectile) {
+			if (((Projectile) damager).getShooter() instanceof Player)
+				cause = (Player) ((Projectile) damager).getShooter();
 
-			if (event.getDamager() instanceof ThrownPotion)
-				weapon = ((ThrownPotion) event.getDamager()).getItem();
+			if (damager instanceof ThrownPotion)
+				weapon = ((ThrownPotion) damager).getItem();
 
 			info.mele = false;
 			projectile = true;
 		} else
 			info.mele = true;
 
-		if (event.getDamager() instanceof Wolf
-				&& ((Wolf) event.getDamager()).isTamed()
-				&& ((Wolf) event.getDamager()).getOwner() instanceof Player) {
-			cause = (Player) ((Wolf) event.getDamager()).getOwner();
+		if (damager instanceof Wolf && ((Wolf) damager).isTamed()
+				&& ((Wolf) damager).getOwner() instanceof Player) {
+			cause = (Player) ((Wolf) damager).getOwner();
 
 			info.mele = false;
 			info.wolfAssist = true;
@@ -776,7 +786,66 @@ public class MobHunting extends JavaPlugin implements Listener {
 				info.wasFlying = true;
 
 			info.attackerPosition = cause.getLocation().clone();
-			mDamageHistory.put((LivingEntity) event.getEntity(), info);
+
+			if (!info.playerUndercover)
+				if (DisguisesHelper.isDisguised(cause)) {
+					if (DisguisesHelper.isDisguisedAsAgresiveMob(cause)) {
+						debug("[MobHunting] %s was under cover - diguised as an agressive mob",
+								cause.getName());
+						info.playerUndercover = true;
+					} else
+						debug("[MobHunting] %s was under cover - diguised as an passive mob",
+								cause.getName());
+					if (mConfig.removeDisguiseWhenAttacking) {
+						DisguisesHelper.undisguiseEntity(cause);
+						if (cause instanceof Player)
+							cause.sendMessage(ChatColor.GREEN
+									+ ""
+									+ ChatColor.ITALIC
+									+ Messages.getString(
+											"bonus.undercover.message",
+											"cause", cause.getName()));
+						if (damaged instanceof Player)
+							damaged.sendMessage(ChatColor.GREEN
+									+ ""
+									+ ChatColor.ITALIC
+									+ Messages.getString(
+											"bonus.undercover.message",
+											"cause", cause.getName()));
+					}
+				} else
+					debug("[MobHunting] %s was NOT diguised", cause.getName());
+
+			if (!info.mobCoverBlown)
+				if (DisguisesHelper.isDisguised(damaged)) {
+					if (DisguisesHelper.isDisguisedAsAgresiveMob(damaged)) {
+						debug("[MobHunting] %s Cover blown, diguised as an agressive mob",
+								damaged.getName());
+						info.mobCoverBlown = true;
+					} else
+						debug("[MobHunting] %s Cover Blown, diguised as an passive mob",
+								damaged.getName());
+					if (mConfig.removeDisguiseWhenAttacked) {
+						DisguisesHelper.undisguiseEntity(damaged);
+						if (damaged instanceof Player)
+							damaged.sendMessage(ChatColor.GREEN
+									+ ""
+									+ ChatColor.ITALIC
+									+ Messages.getString(
+											"bonus.coverblown.message",
+											"damaged", damaged.getName()));
+						if (cause instanceof Player)
+							cause.sendMessage(ChatColor.GREEN
+									+ ""
+									+ ChatColor.ITALIC
+									+ Messages.getString(
+											"bonus.coverblown.message",
+											"damaged", damaged.getName()));
+					}
+				} else
+					debug("[MobHunting] %s was NOT diguised", damaged.getName());
+
+			mDamageHistory.put((LivingEntity) damaged, info);
 		}
 	}
 
@@ -816,38 +885,93 @@ public class MobHunting extends JavaPlugin implements Listener {
 		}
 	}
 
-	@SuppressWarnings({ "deprecation", "unused" })
+	@SuppressWarnings({ "unused", "deprecation" })
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	private void onMobDeath(EntityDeathEvent event) {
 		LivingEntity killed = event.getEntity();
 		Player killer = killed.getKiller();
 
 		if (!isHuntEnabledInWorld(killed.getWorld())) {
-			debug("KillBlocked %s(%d): Mobhunting disabled in world %s",
-					killed.getType(), killed.getEntityId(), killed.getWorld()
-							.getName());
-			return;
+			if (CompatibilityManager.isPluginLoaded(WorldGuardCompat.class)
+					&& WorldGuardCompat.isEnabledInConfig()) {
+				if (killer instanceof Player
+						|| (MyPetCompat.isMyPetSupported() && killer instanceof MyPetEntity)) {
+					ApplicableRegionSet set = WorldGuardCompat
+							.getWorldGuardPlugin()
+							.getRegionManager(killer.getWorld())
+							.getApplicableRegions(killer.getLocation());
+					if (set.size() > 0) {
+						if (set.allows(WorldGuardCompat.getMobHuntingFlag())) {
+							debug("KillBlocked %s(%d): Mobhunting disabled in world '%s'"
+									+ ",but MobHunting flag is (%s)",
+									killed.getType(), killed.getEntityId(),
+									killed.getWorld().getName(),
+									set.allows(WorldGuardCompat
+											.getMobHuntingFlag()));
+						} else {
+							debug("KillBlocked %s(%d): Mobhunting disabled in world '%s',"
+									+ " and MobHunting flag is '%s')",
+									killed.getType(), killed.getEntityId(),
+									killed.getWorld().getName(),
+									set.allows(WorldGuardCompat
+											.getMobHuntingFlag()));
+							learn(killer,
+									"MobHunting is disabled in this world by Admin, and you are not in a WorldGuard region wher MobHunting is set to 'ALLOW'.");
+							return;
+						}
+					} else {
+						debug("KillBlocked %s(%d): Mobhunting disabled in world %s, "
+								+ "WG is supported, but player not in a WG region.",
+								killed.getType(), killed.getEntityId(), killed
+										.getWorld().getName());
+						learn(killer,
+								"MobHunting is disabled in this world by Admin.");
+						return;
+					}
+				}
+				// killer is not a player - MobHunting is allowed
+			} else {
+				// MobHunting is NOT allowed in world and no support for WG
+				// reject.
+				debug("KillBlocked: MobHunting disabled in world and Worldguard is not supported");
+				learn(killer, "MobHunting is disabled in this world by Admin.");
+				return;
+			}
+
+			// MobHunting is allowed in this world,
+			// Continue to ned if... (Do NOTHING).
 		}
 
-		if (WorldGuardCompat.isWorldGuardSupported()
+		if (CompatibilityManager.isPluginLoaded(WorldGuardCompat.class)
 				&& WorldGuardCompat.isEnabledInConfig()) {
 			if (killer instanceof Player
 					|| (MyPetCompat.isMyPetSupported() && killer instanceof MyPetEntity)) {
-				RegionManager regionManager = WorldGuardCompat
-						.getWorldGuardPlugin().getRegionManager(
-								killer.getWorld());
-				ApplicableRegionSet set = regionManager
+
+				ApplicableRegionSet set = WorldGuardCompat
+						.getWorldGuardPlugin()
+						.getRegionManager(killer.getWorld())
 						.getApplicableRegions(killer.getLocation());
+
 				if (set.size() > 0) {
-					debug("Found %s worldguard regions: flag is %s",
+					debug("Found %s Worldguard region(s): MOB_DAMAGE flag is %s",
 							set.size(), set.allows(DefaultFlag.MOB_DAMAGE));
-					if (killer instanceof Player
-							&& !set.allows(DefaultFlag.MOB_DAMAGE)) {
+					if (!set.allows(DefaultFlag.MOB_DAMAGE)) {
 						debug("KillBlocked: %s is hiding in WG region with MOB_DAMAGE %s",
 								killer.getName(),
 								set.allows(DefaultFlag.MOB_DAMAGE));
+						learn(killer,
+								"You don't get a reward because you are in a WorldGuard region with 'MOB-DAMAGE DENY' flag set.");
+						return;
+					} else if (!set
+							.allows(WorldGuardCompat.getMobHuntingFlag())) {
+						debug("KillBlocked: %s is hiding in WG region with MOBHUNTING FLAG %s",
+								killer.getName(), set.allows(WorldGuardCompat
+										.getMobHuntingFlag()));
+						learn(killer,
+								"You don't get a reward because you are in a WorldGuard region with 'MOBHUNTING DENY' flag set.");
 						return;
 					}
+
 				}
 			}
 		}
@@ -892,18 +1016,37 @@ public class MobHunting extends JavaPlugin implements Listener {
 					&& !mConfig.mobarenaGetRewards) {
 				debug("KillBlocked: %s is currently playing MobArena.",
 						killer.getName());
+				learn(killer, "You don't get rewards while playing MobArena");
 				return;
 			} else if (PVPArenaCompat.isEnabledInConfig()
 					&& PVPArenaHelper.isPlayingPVPArena(killer)
 					&& !mConfig.pvparenaGetRewards) {
 				debug("KillBlocked: %s is currently playing PvpArena.",
 						killer.getName());
+				learn(killer, "You don't get rewards while playing PvpArena");
 				return;
+			} else if (EssentialsCompat.isSupported()) {
+				if (EssentialsCompat.isGodModeEnabled(killer)) {
+					debug("KillBlocked: %s is in God mode", killer.getName());
+					learn(killer,
+							"You don't get rewards while you are in God mode");
+					return;
+				} else if (EssentialsCompat.isVanishedModeEnabled(killer)) {
+					debug("KillBlocked: %s is in Vanished mode",
+							killer.getName());
+					learn(killer,
+							"You don't get rewards while you are Vanished");
+					return;
+				}
+
 			}
 
 			if (!hasPermissionToKillMob(killer, killed)) {
 				debug("KillBlocked: %s has not permission to kill %s.",
 						killer.getName(), killed.getName());
+				learn(killer,
+						"You don't have permission to get reward for killing this mob:"
+								+ killed.getCustomName());
 				return;
 			}
 		}
@@ -912,12 +1055,18 @@ public class MobHunting extends JavaPlugin implements Listener {
 				&& mConfig.getKillConsoleCmd(killed).equals("")) {
 			debug("KillBlocked %s(%d): There is no reward for this Mob/Player",
 					killed.getType(), killed.getEntityId());
+			if (killer != null)
+				learn(killer, "There is no reward for killing this mob/player:"
+						+ killed.getCustomName());
 			return;
 		}
 
 		if (killed.hasMetadata("MH:blocked")) {
 			debug("KillBlocked %s(%d): Mob has MH:blocked meta (probably spawned from a mob spawner)",
 					killed.getType(), killed.getEntityId());
+			learn(killer, "There is no reward for killing this mob/player:"
+					+ killed.getCustomName()
+					+ "is was probaly spawned from a mob spawner");
 			return;
 		}
 
@@ -925,6 +1074,8 @@ public class MobHunting extends JavaPlugin implements Listener {
 				|| !isHuntEnabled(killer)) {
 			if (killer != null && killer.getGameMode() == GameMode.CREATIVE)
 				debug("KillBlocked %s: In creative mode", killer.getName());
+			learn(killer,
+					"You don't get MobHunting rewards, when you are in Creative mode.");
 			return;
 		}
 
@@ -962,6 +1113,74 @@ public class MobHunting extends JavaPlugin implements Listener {
 
 		if (info.weapon == null)
 			info.weapon = new ItemStack(Material.AIR);
+
+		boolean killer_muted = false;
+		boolean killed_muted = false;
+		if (killer instanceof Player) {
+			killer_muted = playerData.get(killer.getUniqueId()).isMuted();
+			debug("killer.getMuteMode=%s", killer_muted);
+		}
+		if (killed instanceof Player)
+			killed_muted = playerData.get(killer.getUniqueId()).isMuted();
+
+		if (!info.playerUndercover)
+			if (DisguisesHelper.isDisguised(killer)) {
+				if (DisguisesHelper.isDisguisedAsAgresiveMob(killer)) {
+					debug("[MobHunting] %s was under cover - diguised as an agressive mob",
+							killer.getName());
+					info.playerUndercover = true;
+				} else
+					debug("[MobHunting] %s was under cover - diguised as an passive mob",
+							killer.getName());
+				if (mConfig.removeDisguiseWhenAttacking) {
+					DisguisesHelper.undisguiseEntity(killer);
+					if (killer instanceof Player && !killer_muted)
+						killer.sendMessage(ChatColor.GREEN
+								+ ""
+								+ ChatColor.ITALIC
+								+ Messages.getString(
+										"bonus.undercover.message", "cause",
+										killer.getName()));
+					if (killed instanceof Player && !killed_muted)
+						killed.sendMessage(ChatColor.GREEN
+								+ ""
+								+ ChatColor.ITALIC
+								+ Messages.getString(
+										"bonus.undercover.message", "cause",
+										killer.getName()));
+				}
+
+			} else
+				debug("[MobHunting] %s was NOT diguised", killer.getName());
+
+		if (!info.mobCoverBlown)
+			if (DisguisesHelper.isDisguised(killed)) {
+				if (DisguisesHelper.isDisguisedAsAgresiveMob(killed)) {
+					debug("[MobHunting] %s Cover blown, diguised as an agressive mob",
+							killed.getName());
+					info.mobCoverBlown = true;
+				} else
+					debug("[MobHunting] %s Cover Blown, diguised as an passive mob",
+							killed.getName());
+				if (mConfig.removeDisguiseWhenAttacked) {
+					DisguisesHelper.undisguiseEntity(killed);
+					if (killed instanceof Player && !killed_muted)
+						killed.sendMessage(ChatColor.GREEN
+								+ ""
+								+ ChatColor.ITALIC
+								+ Messages.getString(
+										"bonus.coverblown.message", "damaged",
+										killed.getName()));
+					if (killer instanceof Player && !killer_muted)
+						killer.sendMessage(ChatColor.GREEN
+								+ ""
+								+ ChatColor.ITALIC
+								+ Messages.getString(
+										"bonus.coverblown.message", "damaged",
+										killed.getName()));
+				}
+			} else
+				debug("[MobHunting] %s was NOT diguised", killed.getName());
 
 		HuntData data = getHuntData(killer);
 
@@ -1026,7 +1245,6 @@ public class MobHunting extends JavaPlugin implements Listener {
 			if (mod.doesApply(killed, killer, data, info, lastDamageCause)) {
 				double amt = mod.getMultiplier(killed, killer, data, info,
 						lastDamageCause);
-
 				if (amt != 1.0) {
 					modifiers.add(mod.getName());
 					multiplier *= amt;
@@ -1048,7 +1266,8 @@ public class MobHunting extends JavaPlugin implements Listener {
 
 		cash *= multiplier;
 
-		if (cash >= 0.01) {
+		if ((cash >= 0.01) || (cash <= -0.01)) {
+			// TODO: This must be moved, only works for cash!=0
 			MobHuntKillEvent event2 = new MobHuntKillEvent(data, info, killed,
 					killer);
 			Bukkit.getPluginManager().callEvent(event2);
@@ -1060,47 +1279,82 @@ public class MobHunting extends JavaPlugin implements Listener {
 			}
 
 			if (killed instanceof Player && killer instanceof Player) {
-				if (!CitizensCompat.isNPC(killed)) {
-					mEconomy.withdrawPlayer((Player) killed, cash);
-					killed.sendMessage(ChatColor.GREEN
-							+ ""
-							+ ChatColor.ITALIC
-							+ Messages.getString("mobhunting.moneylost",
-									mEconomy.format(cash)));
-					debug("%s lost %s", killed.getName(), mEconomy.format(cash));
+				if (CitizensCompat.isDisabledInConfig()
+						|| !CitizensCompat.isCitizensSupported()
+						|| !CitizensCompat.isNPC(killed)) {
+					if (mConfig.robFromVictim) {
+						mEconomy.withdrawPlayer((Player) killed, cash);
+						if (!killed_muted)
+							killed.sendMessage(ChatColor.RED
+									+ ""
+									+ ChatColor.ITALIC
+									+ Messages.getString(
+											"mobhunting.moneylost",
+											mEconomy.format(cash)));
+						debug("%s lost %s", killed.getName(),
+								mEconomy.format(cash));
+					}
 				}
 			}
+
 			if (info.assister == null) {
-				mEconomy.depositPlayer(killer, cash);
-				debug("%s got a reward (%s)", killer.getName(),
-						mEconomy.format(cash));
+				if (cash > 0) {
+					mEconomy.depositPlayer(killer, cash);
+					debug("%s got a reward (%s)", killer.getName(),
+							mEconomy.format(cash));
+				} else {
+					mEconomy.withdrawPlayer(killer, -cash);
+
+					debug("%s got a penalty (%s)", killer.getName(),
+							mEconomy.format(cash));
+
+				}
+
 			} else {
 				cash = cash / 2;
-				mEconomy.depositPlayer(killer, cash);
-				onAssist(info.assister, killer, killed, info.lastAssistTime);
-				debug("%s got a ½ reward (%s)", killer.getName(),
-						mEconomy.format(cash));
+				if (cash > 0) {
+					mEconomy.depositPlayer(killer, cash);
+					onAssist(info.assister, killer, killed, info.lastAssistTime);
+					debug("%s got a ½ reward (%s)", killer.getName(),
+							mEconomy.format(cash));
+				} else {
+					mEconomy.withdrawPlayer(killer, -cash);
+					onAssist(info.assister, killer, killed, info.lastAssistTime);
+					debug("%s got a ½ penalty (%s)", killer.getName(),
+							mEconomy.format(cash));
+				}
 			}
 
-			// TODO: record mythicmob kills
+			// TODO: record mythicmob kills as its own kind of mobs
 			if (ExtendedMobType.getExtendedMobType(killed) != null)
 				getDataStore().recordKill(killer,
 						ExtendedMobType.getExtendedMobType(killed),
 						killed.hasMetadata("MH:hasBonus"));
 
-			if (extraString.trim().isEmpty()) {
-				killer.sendMessage(ChatColor.GREEN
-						+ ""
-						+ ChatColor.ITALIC
-						+ Messages.getString("mobhunting.moneygain", "prize",
-								mEconomy.format(cash)));
-			} else
-				killer.sendMessage(ChatColor.GREEN
-						+ ""
-						+ ChatColor.ITALIC
-						+ Messages.getString("mobhunting.moneygain.bonuses",
-								"prize", mEconomy.format(cash), "bonuses",
-								extraString.trim()));
+			if (!killer_muted)
+				if (extraString.trim().isEmpty()) {
+					if (cash > 0) {
+						killer.sendMessage(ChatColor.GREEN
+								+ ""
+								+ ChatColor.ITALIC
+								+ Messages.getString("mobhunting.moneygain",
+										"prize", mEconomy.format(cash)));
+					} else {
+						killer.sendMessage(ChatColor.RED
+								+ ""
+								+ ChatColor.ITALIC
+								+ Messages.getString("mobhunting.moneylost",
+										"prize", mEconomy.format(cash)));
+
+					}
+				} else
+					killer.sendMessage(ChatColor.GREEN
+							+ ""
+							+ ChatColor.ITALIC
+							+ Messages.getString(
+									"mobhunting.moneygain.bonuses", "prize",
+									mEconomy.format(cash), "bonuses",
+									extraString.trim()));
 		} else
 			debug("KillBlocked %s: Gained money was less than 1 cent (grinding or penalties) (%s)",
 					killer.getName(), extraString);
@@ -1124,6 +1378,7 @@ public class MobHunting extends JavaPlugin implements Listener {
 							.replaceAll("\\{world\\}", worldname)
 							.replaceAll("\\{killerpos\\}", killerpos)
 							.replaceAll("\\{killedpos\\}", killedpos);
+					debug("command to be run is:" + prizeCommand);
 					if (!mConfig.getKillConsoleCmd(killed).equals("")) {
 						String str = prizeCommand;
 						do {
@@ -1140,7 +1395,8 @@ public class MobHunting extends JavaPlugin implements Listener {
 								Bukkit.getServer().getConsoleSender(), str);
 					}
 					// send a message to the player
-					if (!mConfig.getKillRewardDescription(killed).equals("")) {
+					if (!mConfig.getKillRewardDescription(killed).equals("")
+							&& !killer_muted) {
 						killer.sendMessage(ChatColor.GREEN
 								+ ""
 								+ ChatColor.ITALIC
@@ -1155,6 +1411,27 @@ public class MobHunting extends JavaPlugin implements Listener {
 				}
 			}
 		}
+	}
+
+	@SuppressWarnings("unused")
+	private void updateMetrics(final Entity killer, final Entity killed) {
+		mobsKilled.addPlotter(new Metrics.Plotter(killed.getName().toString()) {
+			@Override
+			public int getValue() {
+				debug("updateMetrics addPlotter(%s) getValue()=%s",
+						killed.getName(), 1);
+				return 1; // Number of mobs killed
+			}
+		});
+
+		topKillers.addPlotter(new Metrics.Plotter(killer.getName().toString()) {
+			@Override
+			public int getValue() {
+				debug("updateMetrics addPlotter(%s) getValue()=%s",
+						killer.getName(), 1);
+				return 1; // killer killed another mob.
+			}
+		});
 	}
 
 	private void onAssist(Player player, Player killer, LivingEntity killed,
@@ -1202,7 +1479,27 @@ public class MobHunting extends JavaPlugin implements Listener {
 
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	private void onPlayerJoin(PlayerJoinEvent event) {
-		setHuntEnabled(event.getPlayer(), true);
+		final Player player = event.getPlayer();
+		setHuntEnabled(player, true);
+		if (player.hasPermission("mobhunting.update")) {
+			new BukkitRunnable() {
+				@Override
+				public void run() {
+					UpdateHelper.pluginUpdateCheck(player, true, true);
+				}
+			}.runTaskLater(MobHunting.instance, 20L);
+		}
+		boolean lm = getDataStore().getPlayerData(player).isLearningMode();
+		boolean mm = getDataStore().getPlayerData(player).isMuted();
+		if (mm)
+			debug("%s isMuted()", player.getName());
+		playerData.put(player.getUniqueId(), new PlayerData(player, lm, mm));
+	}
+
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+	private void onPlayerQuit(PlayerQuitEvent event) {
+		Player player = event.getPlayer();
+		playerData.remove(player.getUniqueId());
 	}
 
 	public DamageInformation getDamageInformation(LivingEntity entity) {
@@ -1265,6 +1562,22 @@ public class MobHunting extends JavaPlugin implements Listener {
 					new FixedMetadataValue(this, true));
 	}
 
+	/**
+	 * public static boolean isMuted(Player player) { if
+	 * (MobHunting.instance.playerData.containsKey(player.getUniqueId())) return
+	 * MobHunting.instance.playerData.get(player.getUniqueId())
+	 * .isLearningMode(); else {
+	 * MobHunting.debug("ERROR in isMuted - Player %s not in playerStore");
+	 * return false; } }
+	 * 
+	 * public static boolean isLearning(Player player) { if
+	 * (MobHunting.instance.playerData.containsKey(player.getUniqueId())) return
+	 * MobHunting.instance.playerData.get(player.getUniqueId())
+	 * .isLearningMode(); else { MobHunting
+	 * .debug("ERROR in isLearning - Player %s not in playerStore"); return
+	 * false; } }
+	 **/
+
 	public AchievementManager getAchievements() {
 		return mAchievements;
 	}
@@ -1277,128 +1590,28 @@ public class MobHunting extends JavaPlugin implements Listener {
 		return mLeaderboards;
 	}
 
-	// ***************************************************************************
-	// UPDATECHECK - Check if there is a new version available at
-	// https://api.curseforge.com/servermods/files?projectIds=63718
-	// ***************************************************************************
-	/**
-	 * @return the updateCheck
-	 */
-	public Update getUpdateCheck() {
-		return updateCheck;
-	}
-
-	/**
-	 * Checks to see if there are any plugin updates Called when reloading
-	 * settings too
-	 */
-	public void checkUpdates() {
-		// Version checker
-		getLogger().info("Checking for new updates...");
-		getServer().getScheduler().runTaskAsynchronously(this, new Runnable() {
-			@Override
-			public void run() {
-				updateCheck = new Update(63718); // MobHunting
-				if (!updateCheck.isSuccess()) {
-					updateCheck = null;
-				}
-			}
-		});
-	}
-
-	public void checkUpdatesNotify(Player p) {
-		boolean update = false;
-		final String pluginVersion = instance.getDescription().getVersion();
-		// Check to see if the latest file is newer that this one
-		String[] split = instance.getUpdateCheck().getVersionName().split(" V");
-		// Only do this if the format is what we expect
-		if (split.length == 2) {
-			// Need to escape the period in the regex expression
-			String[] updateVer = split[1].split("\\.");
-			// CHeck the version #'s
-			String[] pluginVer = pluginVersion.split("\\.");
-			// Run through major, minor, sub
-			for (int i = 0; i < Math.max(updateVer.length, pluginVer.length); i++) {
-				try {
-					int updateCheck = 0;
-					if (i < updateVer.length) {
-						updateCheck = Integer.valueOf(updateVer[i]);
-					}
-					int pluginCheck = 0;
-					if (i < pluginVer.length) {
-						pluginCheck = Integer.valueOf(pluginVer[i]);
-					}
-					// " plugin is " + pluginCheck);
-					if (updateCheck < pluginCheck) {
-						// getLogger().info("["+pluginName+"]DEBUG: plugin is newer!");
-						// plugin is newer
-						update = false;
-						break;
-					} else if (updateCheck > pluginCheck) {
-						update = true;
-						break;
-					}
-				} catch (Exception e) {
-					getLogger().warning(
-							"Could not determine update's version # ");
-					getLogger().warning("Plugin version: " + pluginVersion);
-					getLogger().warning(
-							"Update version: "
-									+ instance.getUpdateCheck()
-											.getVersionName());
-					return;
-				}
-			}
-		}
-		// Show the results
-		if (p != null) {
-			if (!update) {
-				return;
-			} else {
-				// Player login
-				p.sendMessage(ChatColor.GOLD
-						+ instance.getUpdateCheck().getVersionName()
-						+ " is available! You are running " + pluginVersion);
-				p.sendMessage(ChatColor.RED
-						+ "Update at: http://dev.bukkit.org/server-mods/mobhunting/");
-			}
-		} else {
-			// Console
-			if (!update) {
-				getLogger().info("No updates available.");
-				return;
-			} else {
-				getLogger().info(
-						"Version " + instance.getUpdateCheck().getVersionName()
-								+ " is available! You are running "
-								+ pluginVersion);
-				getLogger()
-						.info("Update at: http://dev.bukkit.org/server-mods/mobhunting/");
-			}
-		}
+	public PlayerData getPlayerData(UUID uuid) {
+		return playerData.get(uuid);
 	}
 
 	// ************************************************************************************
-	private Logger logger;
+	// SPONGE PROJECT
+	// ************************************************************************************
 
-	@Plugin(id = "mobhuntingSponge", name = "MobHunting Project", version = "1.0")
-	public class MobHuntingProject implements Listener {
-		@Subscribe
-		public void onServerStart(ServerStartedEvent event) {
-			// Hey! The server has started!
-			// Try instantiating your logger in here.
-			// (There's a guide for that)
-			logger.info("Hello World!");
-		}
+	// private Logger logger;
 
-		@Subscribe
-		public void onServerStop(ServerStoppedEvent event) {
-			// Hey! The server has started!
-			// Try instantiating your logger in here.
-			// (There's a guide for that)
-			logger.info("Goodbye World!");
-		}
-	}
+	/**
+	 * @Plugin(id = "mobhuntingSponge", name = "MobHunting Project", version =
+	 *            "1.0") public class MobHuntingProject implements Listener {
+	 * @Subscribe public void onServerStart(ServerStartedEvent event) { // Hey!
+	 *            The server has started! // Try instantiating your logger in
+	 *            here. // (There's a guide for that)
+	 *            logger.info("Hello World!"); }
+	 * @Subscribe public void onServerStop(ServerStoppedEvent event) { // Hey!
+	 *            The server has started! // Try instantiating your logger in
+	 *            here. // (There's a guide for that)
+	 *            logger.info("Goodbye World!"); } }
+	 **/
 	// ************************************************************************************
 
 }

@@ -21,7 +21,7 @@ import org.bukkit.material.Sign;
 import au.com.mineauz.MobHunting.Messages;
 import au.com.mineauz.MobHunting.MobHunting;
 import au.com.mineauz.MobHunting.StatType;
-import au.com.mineauz.MobHunting.leaderboard.Leaderboard;
+import au.com.mineauz.MobHunting.leaderboard.WorldLeaderboard;
 import au.com.mineauz.MobHunting.storage.TimePeriod;
 
 public class LeaderboardCommand implements ICommand, Listener {
@@ -51,11 +51,11 @@ public class LeaderboardCommand implements ICommand, Listener {
 		return new String[] {
 				label
 						+ ChatColor.GOLD
-						+ " create <type> <period> [isHorizonal?] [<width> <height>]", //$NON-NLS-1$
+						+ " create <type> <period> [isHorizonal?] [<width> <height>]", 
 				label + ChatColor.GOLD + " delete <id>",
 				label
 						+ ChatColor.GOLD
-						+ " edit (type|period|horizontal|addtype|addperiod) <value>" //$NON-NLS-1$
+						+ " edit (type|period|horizontal|addtype|addperiod) <value>" 
 		};
 	}
 
@@ -284,11 +284,11 @@ public class LeaderboardCommand implements ICommand, Listener {
 		if (args.length == 0)
 			return false;
 
-		if (args[0].equalsIgnoreCase("create")) //$NON-NLS-1$
+		if (args[0].equalsIgnoreCase("create")) 
 			return onCreate(sender, args);
-		else if (args[0].equalsIgnoreCase("delete")) //$NON-NLS-1$
+		else if (args[0].equalsIgnoreCase("delete")) 
 			return onDelete(sender, args);
-		else if (args[0].equalsIgnoreCase("edit")) //$NON-NLS-1$
+		else if (args[0].equalsIgnoreCase("edit")) 
 			return onEdit(sender, args);
 
 		return false;
@@ -387,7 +387,7 @@ public class LeaderboardCommand implements ICommand, Listener {
 			}
 
 		} else {
-			Leaderboard board = MobHunting.instance.getLeaderboards()
+			WorldLeaderboard board = MobHunting.instance.getLeaderboards()
 					.getLeaderboardAt(event.getClickedBlock().getLocation());
 			if (board != null) {
 				if (state.type != null)
